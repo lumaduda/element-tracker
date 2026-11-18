@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Element Club Photo Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --wall:#EDEFF1;--surface:#FFFFFF;--ink:#17161B;--ink2:#3B3A42;--muted:#666A75;--line:#D7DAE0;--line2:#E7E9ED;
+  --crimson:#9F1D35;--crimson-ink:#7E1529;--crimson-tint:#F7E4E8;
+  --gold:#A87914;--gold-bright:#D9A632;--gold-tint:#F8EDD3;
+  --green:#2C7A53;--green-tint:#DFF0E6;--amber:#9E5B0A;--amber-tint:#FBEBD3;--blue:#2D5B9A;--blue-tint:#E2EBF7;
+  --rail:#17161B;--rail-text:#A9A8B2;
+  --display:'Big Shoulders Display',Impact,'Arial Narrow',sans-serif;
+  --body:'Atkinson Hyperlegible',system-ui,-apple-system,sans-serif;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--wall);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--crimson);text-underline-offset:2px}
+:focus-visible{outline:3px solid var(--gold-bright);outline-offset:2px;border-radius:4px}
+.hidden{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- App frame ---------- */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.rail{background:var(--rail);color:#fff;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:22px 14px 16px;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 22px}
+.brand img{max-height:40px;max-width:180px;display:block}
+.brand .word{font-family:var(--display);font-weight:900;font-size:30px;letter-spacing:.06em;line-height:1}
+.brand .tag{font-size:12.5px;color:var(--rail-text);line-height:1.25;margin-top:4px}
+.rail nav a{display:flex;align-items:center;gap:11px;padding:9px 10px 9px 12px;margin:1px 0;color:var(--rail-text);text-decoration:none;border-radius:8px;position:relative;font-weight:700;font-size:14.5px}
+.rail nav a:hover{color:#fff;background:#24232A}
+.rail nav a.on{color:#fff;background:#24232A}
+.rail nav a.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--crimson)}
+.rail nav a svg{width:18px;height:18px;flex:none}
+.rail nav .ct{margin-left:auto;background:var(--crimson);color:#fff;font-size:12px;border-radius:999px;padding:0 7px;line-height:20px;font-weight:700}
+.rail .group{color:#77767F;font-size:12.5px;margin:18px 12px 6px}
+.rail .foot{margin-top:auto;padding-top:16px;border-top:1px solid #2B2A31}
+.who{display:flex;align-items:center;gap:10px;padding:6px 8px}
+.who img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#333}
+.who .n{font-weight:700;font-size:14px;line-height:1.2}
+.who .r{font-size:12.5px;color:var(--rail-text)}
+.who .pts{margin-left:auto;font-weight:700;font-size:20px;color:var(--gold-bright);line-height:1}
+.who .pts small{font-family:var(--body);font-size:11px;font-weight:700;color:var(--rail-text);display:block;text-align:right}
+.rail .signout{background:none;border:0;color:var(--rail-text);font-size:13px;padding:4px 8px;cursor:pointer;text-decoration:underline}
+main{padding:34px 40px 100px;min-width:0;max-width:1440px}
+
+/* Mobile chrome */
+.mtop,.mtabs{display:none}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{display:none}
+  .mtop{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;background:var(--rail);color:#fff;padding:calc(10px + var(--safe-t)) 16px 10px}
+  .mtop .brand{padding:0}
+  .mtop .brand .word{font-size:24px}
+  .mtop .brand .tag{display:none}
+  .mtop .brand img{max-height:30px}
+  .mtop .sp{flex:1}
+  .mtop .pts{font-family:var(--display);font-weight:800;font-size:20px;color:var(--gold-bright)}
+  .mtop img.av{width:30px;height:30px;border-radius:50%}
+  .mtabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + var(--safe-b))}
+  .mtabs a,.mtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:700;color:var(--muted);text-decoration:none;background:none;border:0;padding:4px 0;position:relative}
+  .mtabs svg{width:22px;height:22px}
+  .mtabs .on{color:var(--crimson)}
+  .mtabs .dot{position:absolute;top:2px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--crimson)}
+  main{padding:20px 16px calc(96px + var(--safe-b))}
+}
+
+/* ---------- Type ---------- */
+.ph{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.ph .t{flex:1;min-width:240px}
+h1{font-family:var(--display);font-weight:800;font-size:46px;line-height:.95;margin:0;letter-spacing:.005em}
+.lede{color:var(--muted);margin:8px 0 0;max-width:64ch}
+h2{font-family:var(--display);font-weight:800;font-size:28px;line-height:1;margin:0 0 4px}
+h3{font-size:16px;margin:0 0 4px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums}
+@media (max-width:900px){h1{font-size:38px}}
+
+/* ---------- Controls ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);background:var(--surface);padding:9px 14px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none;color:var(--ink);min-height:40px}
+.btn:hover{border-color:#B9BDC6}
+.btn.pri{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.btn.pri:hover{background:var(--crimson-ink);border-color:var(--crimson-ink)}
+.btn.ink{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.gold{background:var(--gold-tint);border-color:#E9D29B;color:#6E4E08}
+.btn.quiet{background:transparent;border-color:transparent;color:var(--ink2)}
+.btn.quiet:hover{background:var(--line2)}
+.btn.sm{min-height:32px;padding:5px 10px;font-size:13px;border-radius:7px}
+.btn.lg{min-height:48px;padding:12px 20px;font-size:15.5px}
+.btn.block{width:100%}
+.btn.danger{color:var(--crimson)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn svg{width:16px;height:16px;flex:none}
+.ibtn{border:0;background:transparent;width:34px;height:34px;border-radius:8px;cursor:pointer;color:var(--muted);display:inline-grid;place-items:center}
+.ibtn:hover{background:var(--line2);color:var(--ink)}
+.ibtn svg{width:17px;height:17px}
+.gbtn{display:inline-flex;align-items:center;gap:12px;background:#fff;color:#1f1f1f;border:1px solid #747775;border-radius:999px;padding:0 22px;height:48px;font-weight:700;font-size:15.5px;cursor:pointer}
+.gbtn:hover{background:#F6F7F8}
+.gbtn svg{width:20px;height:20px}
+
+label.f{display:block;font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--ink2)}
+.field{margin-bottom:16px}
+.help{font-size:13px;color:var(--muted);margin-top:5px}
+input[type=text],input[type=email],input[type=date],input[type=time],input[type=url],input[type=number],input[type=search],select,textarea{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;width:100%;outline:none;min-height:42px}
+textarea{min-height:100px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);box-shadow:0 0 0 3px var(--line2)}
+.row{display:flex;gap:12px}.row>*{flex:1;min-width:0}
+@media (max-width:640px){.row{flex-direction:column;gap:0}}
+.check{display:flex;align-items:center;gap:9px;font-weight:700;cursor:pointer;font-size:14px}
+.check input{width:18px;height:18px;accent-color:var(--crimson)}
+.seg{display:inline-flex;background:var(--line2);border-radius:9px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:700;color:var(--muted);font-size:13.5px}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(23,22,27,.12)}
+.search{position:relative;min-width:200px}
+.search input{padding-left:36px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--line2);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700;border:1px solid transparent}
+.chip.tog{cursor:pointer;background:var(--surface);border-color:var(--line)}
+.chip.tog:hover{border-color:#B9BDC6}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.goldc.on{background:var(--gold);border-color:var(--gold)}
+.chip button{border:0;background:none;padding:0;cursor:pointer;color:inherit;opacity:.7;font-size:15px;line-height:1}
+
+/* ---------- Surfaces ---------- */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px 22px}
+.panel.tight{padding:0;overflow:hidden}
+.panel-h{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line2)}
+.panel-h h2{flex:1;font-size:24px;margin:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.grid-side{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+@media (max-width:1100px){.grid2,.grid-side{grid-template-columns:1fr}}
+.note{display:flex;gap:12px;align-items:flex-start;border-radius:var(--r-md);padding:13px 16px;margin-bottom:18px;background:var(--blue-tint);color:#1F3F6D}
+.note.warn{background:var(--amber-tint);color:#6B3E05}
+.note.red{background:var(--crimson-tint);color:#6A1222}
+.note.good{background:var(--green-tint);color:#1C5238}
+.note svg{width:19px;height:19px;flex:none;margin-top:2px}
+.note b{font-weight:700}
+.empty{padding:40px 24px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+.empty .btn{margin-top:14px}
+
+/* ---------- Toolbar ---------- */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .sp{flex:1}
+.week{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:42px}
+.week button{border:0;background:transparent;padding:0 13px;cursor:pointer;font-size:18px;font-weight:700}
+.week button:hover{background:var(--line2)}
+.week .lbl{display:flex;align-items:center;padding:0 14px;font-weight:700;border-left:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap}
+
+/* ---------- Progress strip ---------- */
+.progress{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:auto 1fr;gap:6px 28px;align-items:center}
+.progress .big{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;grid-row:span 2}
+.progress .big span{color:var(--muted);font-size:24px}
+.segbar{display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--line2);gap:2px}
+.segbar i{display:block;height:100%}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+@media (max-width:640px){.progress{grid-template-columns:1fr}.progress .big{grid-row:auto}}
+
+/* ---------- Status ---------- */
+.st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
+.st.open{background:var(--crimson-tint);color:var(--crimson)}
+.st.assigned{background:var(--blue-tint);color:var(--blue)}
+.st.progress{background:var(--amber-tint);color:var(--amber)}
+.st.done{background:var(--green-tint);color:var(--green)}
+.st.gold{background:var(--gold-tint);color:#6E4E08}
+.st.grey{background:var(--line2);color:var(--muted)}
+:root{--c-open:#C6455B;--c-assigned:#4F7CC0;--c-progress:#D08A2A;--c-review:#8B6FD1;--c-done:#3E9A6B}
+.st.review{background:#ECE6FA;color:#5B3FA8}
+.frame.s-review::before{background:var(--c-review)}
+.done-btn.is-pending{border-color:#C9BCF0;background:#ECE6FA;color:#5B3FA8}
+.done-btn.is-pending:hover{background:var(--crimson-tint);border-color:var(--crimson);color:var(--crimson)}
+.done-btn.is-pending[disabled]{border-style:solid;border-color:#C9BCF0;background:#ECE6FA;color:#5B3FA8}
+.pl .sub.back{color:var(--crimson)}
+
+/* ---------- Contact sheet ---------- */
+.day{display:grid;grid-template-columns:132px minmax(0,1fr);gap:18px;padding:18px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0;padding-top:4px}
+.dlabel .dw{font-family:var(--display);font-weight:900;font-size:44px;line-height:.9}
+.dlabel .dd{color:var(--muted);font-weight:700;margin-top:4px}
+.dlabel.today .dw{color:var(--crimson)}
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.frame{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px 14px 20px;position:relative;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+.frame::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c-assigned)}
+.frame.s-open::before{background:var(--c-open)}
+.frame.s-progress::before{background:var(--c-progress)}
+.frame.s-done::before{background:var(--c-done)}
+.frame .fno{position:absolute;right:14px;top:10px;font-family:var(--display);font-weight:700;font-size:26px;color:#CDD1D8;line-height:1}
+.frame .club{font-family:var(--display);font-weight:800;font-size:25px;line-height:1;padding-right:38px}
+.frame .meta{display:flex;flex-direction:column;gap:3px;color:var(--ink2);font-size:14px}
+.frame .meta div{display:flex;gap:8px;align-items:flex-start}
+.frame .meta svg{width:15px;height:15px;color:var(--muted);flex:none;margin-top:3px}
+.frame .task{font-size:14px}
+.frame .flag{font-size:13px;font-weight:700;color:var(--crimson)}
+.frame .fnote{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:9px}
+.frame .people{display:flex;flex-direction:column;gap:6px;padding-top:9px;border-top:1px dashed var(--line)}
+.frame .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:4px}
+.frame .acts .sp{flex:1}
+@media (max-width:900px){.day{grid-template-columns:1fr;gap:10px}.dlabel{display:flex;align-items:baseline;gap:10px}.dlabel .dw{font-size:36px}}
+
+/* person line */
+.pl{display:flex;align-items:center;gap:9px;min-height:32px}
+.pl .av{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:700;color:#fff;background:#7A7F8C}
+.pl .nm{font-weight:700;font-size:14px;line-height:1.2}
+.pl .sub{font-size:12.5px;color:var(--muted)}
+.pl .grow{flex:1;min-width:0}
+.pl.me .nm{color:var(--crimson)}
+.done-btn{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--ink);background:var(--surface);border-radius:8px;padding:5px 10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px}
+.done-btn:hover{background:var(--ink);color:#fff}
+.done-btn.is-done{border-color:var(--green);background:var(--green-tint);color:var(--green)}
+.done-btn.is-done:hover{background:var(--crimson-tint);border-color:var(--crimson);color:var(--crimson)}
+.done-btn[disabled]{border-style:dashed;border-color:var(--line);color:var(--muted);cursor:default;background:transparent}
+.done-btn.is-done[disabled]{border-style:solid;border-color:#BFE0CD;color:var(--green);background:var(--green-tint)}
+.done-btn svg{width:14px;height:14px}
+.plus{font-weight:700;color:var(--gold);font-size:13px}
+
+/* ---------- Sheet table ---------- */
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:auto}
+.sheet-cap{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.sheet-cap b{font-family:var(--display);font-weight:800;font-size:22px;flex:1}
+table{border-collapse:collapse;width:100%}
+th{text-align:left;font-size:13px;color:var(--muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line);background:#F7F8F9;white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:12px 14px;border-bottom:1px solid var(--line2);vertical-align:top;font-size:14px}
+tr:last-child td{border-bottom:0}
+tr.dayrow td{background:#F7F8F9;font-family:var(--display);font-weight:800;font-size:19px;padding:8px 14px;border-bottom:1px solid var(--line)}
+td.b{font-weight:700}
+td.nowrap{white-space:nowrap}
+td.act{white-space:nowrap;text-align:right}
+@media (max-width:900px){
+  table.stack thead{display:none}
+  table.stack,table.stack tbody,table.stack tr,table.stack td{display:block;width:100%}
+  table.stack tr{border-bottom:1px solid var(--line);padding:8px 0}
+  table.stack tr.dayrow{padding:0}
+  table.stack td{border:0;padding:4px 16px}
+  table.stack td[data-l]::before{content:attr(data-l);display:block;font-size:12px;color:var(--muted);font-weight:700}
+  table.stack td.act{text-align:left}
+}
+
+/* ---------- Home ---------- */
+.hello{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;margin-bottom:24px}
+.pointcard{background:var(--ink);color:#fff;border-radius:var(--r-lg);padding:16px 22px;display:flex;align-items:center;gap:18px;min-width:260px}
+.pointcard .v{font-family:var(--display);font-weight:900;font-size:64px;line-height:.85;color:var(--gold-bright)}
+.pointcard .l{font-size:14px;color:#C9C8D0;line-height:1.35}
+.pointcard .l b{color:#fff;display:block;font-size:15px}
+@media (max-width:700px){.hello{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column}
+.li{display:flex;gap:14px;align-items:center;padding:13px 20px;border-top:1px solid var(--line2)}
+.li:first-child{border-top:0}
+.li .when{width:62px;flex:none;text-align:center;line-height:1}
+.li .when b{display:block;font-family:var(--display);font-weight:900;font-size:28px}
+.li .when span{font-size:12.5px;color:var(--muted);font-weight:700}
+.li .what{flex:1;min-width:0}
+.li .what .c{font-weight:700;font-size:15.5px}
+.li .what .m{font-size:13.5px;color:var(--muted)}
+.li .go{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.li{flex-wrap:wrap}.li .go{width:100%;justify-content:flex-start;padding-left:76px}}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.steps li{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line2)}
+.steps li:first-child{border-top:0}
+.steps .box{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+.steps li.ok .box{background:var(--green);border-color:var(--green);color:#fff}
+.steps li.ok .tx{color:var(--muted);text-decoration:line-through}
+.steps .box svg{width:13px;height:13px}
+.steps .tx{flex:1;font-weight:700;font-size:14.5px}
+
+/* ---------- Leaderboard ---------- */
+.lb{list-style:none;margin:0;padding:0}
+.lb li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 20px;border-top:1px solid var(--line2)}
+.lb li:first-child{border-top:0}
+.lb .rk{font-family:var(--display);font-weight:900;font-size:26px;color:#B6BAC3;text-align:center}
+.lb li:nth-child(-n+3) .rk{color:var(--gold)}
+.lb .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .pt{font-family:var(--display);font-weight:800;font-size:24px;color:var(--gold);text-align:right}
+.lb .bar{grid-column:2/4;height:5px;border-radius:9px;background:var(--line2);overflow:hidden}
+.lb .bar i{display:block;height:100%;background:var(--gold-bright)}
+.feed{list-style:none;margin:0;padding:0}
+.feed li{display:flex;gap:12px;padding:11px 20px;border-top:1px solid var(--line2);align-items:center}
+.feed li:first-child{border-top:0}
+.feed .amt{font-family:var(--display);font-weight:800;font-size:22px;width:46px;text-align:right;color:var(--gold)}
+.feed .amt.neg{color:var(--crimson)}
+.feed .tx{flex:1;min-width:0;font-size:14px}
+.feed .tx b{display:block}
+
+/* ---------- Modal / toast ---------- */
+.ov{position:fixed;inset:0;background:rgba(23,22,27,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;animation:fade .15s}
+.modal{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:600px;animation:rise .18s ease-out}
+.modal.wide{max-width:860px}
+.mh{display:flex;align-items:center;gap:10px;padding:18px 22px 12px}
+.mh h2{flex:1;font-size:30px;margin:0}
+.mb{padding:6px 22px 20px}
+.mf{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--line2);flex-wrap:wrap}
+@media (max-width:640px){.ov{padding:0;align-items:flex-end}.modal{border-radius:var(--r-lg) var(--r-lg) 0 0;max-height:92vh;overflow:auto}.mf{position:sticky;bottom:0;background:var(--surface);padding-bottom:calc(14px + var(--safe-b))}.mf .btn{flex:1}}
+@keyframes fade{from{opacity:0}}
+@keyframes rise{from{transform:translateY(10px);opacity:0}}
+#toasts{position:fixed;bottom:calc(22px + var(--safe-b));left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+@media (max-width:900px){#toasts{bottom:calc(84px + var(--safe-b))}}
+.toast{background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-weight:700;animation:rise .2s;max-width:90vw}
+.toast.err{background:var(--crimson)}
+.toast.gold{background:#2A1F05;color:var(--gold-bright)}
+
+/* ---------- Picker ---------- */
+.picker{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.picker .pq{border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+.picker .opts{max-height:210px;overflow:auto;padding:4px}
+.picker label{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:14px}
+.picker label:hover{background:var(--line2)}
+.picker label input{accent-color:var(--crimson);width:16px;height:16px}
+.picker .sel{padding:9px;border-bottom:1px solid var(--line);min-height:20px}
+
+/* ---------- Role cards / invites ---------- */
+.roles3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.rcard{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;background:var(--surface);text-align:left}
+.rcard:hover{border-color:#B9BDC6}
+.rcard.on{border-color:var(--crimson);box-shadow:inset 0 0 0 1px var(--crimson)}
+.rcard b{display:block;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
+.rcard span{font-size:13px;color:var(--muted);line-height:1.35;display:block;margin-top:2px}
+.rcard[disabled]{opacity:.4;cursor:not-allowed}
+@media (max-width:700px){.roles3{grid-template-columns:1fr}}
+.rb{display:inline-block;font-size:12.5px;font-weight:700;padding:2px 9px;border-radius:6px;background:var(--line2);color:var(--ink2)}
+.rb.Admin{background:var(--crimson-tint);color:var(--crimson)}
+.rb.Manager{background:var(--gold-tint);color:#6E4E08}
+.rb.Member{background:var(--green-tint);color:var(--green)}
+.linkbox{display:flex;gap:8px;align-items:center;background:var(--line2);border-radius:10px;padding:8px 8px 8px 12px}
+.linkbox code{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow:auto}
+.tabs button{border:0;background:transparent;padding:10px 14px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--crimson)}
+.preview{white-space:pre-wrap;font-size:14px;background:#F7F8F9;border:1px solid var(--line);border-radius:10px;padding:14px;max-height:280px;overflow:auto}
+.recips{max-height:150px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:10px;background:#F7F8F9}
+
+/* ---------- QR ---------- */
+.qr{display:block;width:100%;height:auto;image-rendering:pixelated}
+.qrbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.qrbox .qrw{width:220px;max-width:100%;margin:0 auto}
+.qrbox b{display:block;font-family:var(--display);font-weight:800;font-size:22px;margin-top:8px;line-height:1.05}
+.qrbox span{font-size:13px;color:var(--muted)}
+.qrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.poster{background:var(--ink);color:#fff;border-radius:16px;padding:26px;text-align:center}
+.poster h2{font-size:40px;margin:0 0 6px}
+.poster .qrw{background:#fff;border-radius:12px;padding:12px;width:260px;max-width:100%;margin:16px auto}
+@media print{
+  body *{visibility:hidden}
+  .printable,.printable *{visibility:visible}
+  .printable{position:absolute;left:0;top:0;width:100%}
+  .ov{background:none;position:static;padding:0}
+  .no-print{display:none!important}
+}
+
+/* ---------- Help ---------- */
+.help-tabs{margin-bottom:22px}
+.tut{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:28px;align-items:center;padding:28px 0;border-top:1px solid var(--line)}
+.tut:first-of-type{border-top:0;padding-top:4px}
+.tut .k{font-family:var(--display);font-weight:900;font-size:56px;line-height:.85;color:#C5C9D1}
+.tut h2{font-size:32px;margin:6px 0 8px}
+.tut ol{margin:0;padding-left:20px;line-height:1.65}
+.tut ol li{margin-bottom:4px}
+.tut figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tut figure img{display:block;width:100%;height:auto}
+.tut.mobile figure{max-width:330px;justify-self:center;border-radius:22px;border:8px solid var(--ink)}
+@media (max-width:900px){.tut{grid-template-columns:1fr;gap:14px}}
+
+/* ---------- Landing (hosted, signed out) ---------- */
+.landing{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);background:var(--ink);color:#fff}
+.landing .l{padding:56px 56px 40px;display:flex;flex-direction:column;justify-content:space-between;gap:30px}
+.landing .big{font-family:var(--display);font-weight:900;font-size:clamp(64px,10vw,150px);line-height:.82;letter-spacing:.01em;margin:0}
+.landing .big em{font-style:normal;color:var(--gold-bright)}
+.landing p{color:#C9C8D0;max-width:44ch;font-size:17px}
+.landing .r{background:var(--wall);color:var(--ink);padding:56px 48px;display:flex;flex-direction:column;justify-content:center;gap:26px}
+.landing .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px}
+.landing .sheetstrip{display:flex;gap:8px}
+.landing .sheetstrip i{flex:1;height:56px;border-radius:6px;background:#26252C;position:relative}
+.landing .sheetstrip i::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:6px 0 0 6px;background:var(--c-done)}
+.landing .sheetstrip i:nth-child(2)::before{background:var(--c-assigned)}
+.landing .sheetstrip i:nth-child(3)::before{background:var(--c-open)}
+.landing .sheetstrip i:nth-child(4)::before{background:var(--c-progress)}
+@media (max-width:900px){.landing{grid-template-columns:1fr}.landing .l{padding:36px 24px 28px}.landing .r{padding:28px 18px 48px}}
+.loading{display:flex;align-items:center;gap:12px;color:var(--muted);padding:60px 0;justify-content:center}
+.spin{width:20px;height:20px;border:3px solid var(--line);border-top-color:var(--crimson);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root"><div class="loading"><div class="spin"></div>Loading the tracker…</div></div>
+<div id="modal-root"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Element Club Photo Tracker
+   Runs two ways from this one file:
+   - On claude.ai as an artifact (data in the artifact database)
+   - Self-hosted with Firebase (Google sign-in, Firestore) when config.js
+     provides ELEMENT_CONFIG.firebase. Optional Apps Script mail relay.
+   ===================================================================== */
+const CFG=(window.ELEMENT_CONFIG&&typeof window.ELEMENT_CONFIG==='object')?window.ELEMENT_CONFIG:{};
+const MODE=(CFG.firebase&&CFG.firebase.apiKey&&!/PASTE|YOUR_/i.test(CFG.firebase.apiKey))?'firebase':'claude';
+
+/* ---------- Icons ---------- */
+const sv=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const I={
+  home:sv('<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'),
+  cal:sv('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  grid:sv('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>'),
+  star:sv('<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/>'),
+  hand:sv('<path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>'),
+  pen:sv('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+  mail:sv('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>'),
+  users:sv('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  gear:sv('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  help:sv('<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>'),
+  plus:sv('<path d="M12 5v14M5 12h14"/>'),
+  check:sv('<path d="M20 6 9 17l-5-5"/>'),
+  trash:sv('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'),
+  bell:sv('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>'),
+  link:sv('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'),
+  folder:sv('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>'),
+  copy:sv('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  search:sv('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
+  info:sv('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'),
+  clock:sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  pin:sv('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'),
+  qr:sv('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h3v3h-3z"/>'),
+  dup:sv('<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>'),
+  x:sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  more:sv('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
+  medal:sv('<circle cx="12" cy="15" r="6"/><path d="M8.5 10 6 2h4l2 5 2-5h4l-2.5 8"/><path d="M12 12.5v5M10 15h4"/>'),
+  list:sv('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
+  sheet:sv('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>'),
+  send:sv('<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>'),
+  print:sv('<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'),
+  google:'<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
+};
+
+/* ---------- Helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseISO=s=>{if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const mondayOf=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const todayISO=()=>iso(new Date());
+const fmtDay=s=>{const d=parseISO(s);return d?d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}):(s||'')};
+const fmtShort=s=>{const d=parseISO(s);return d?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):(s||'')};
+const fmtMD=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const fmtLong=d=>d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+const fmtTime=t=>{if(!t||!/^\d{1,2}:\d{2}/.test(t))return t||'';const[h,m]=t.split(':').map(Number);return `${(h%12)||12}:${pad(m)} ${h<12?'AM':'PM'}`};
+const timeRange=a=>a.start?(fmtTime(a.start)+(a.end?'–'+fmtTime(a.end):'')):(a.time||'Time TBD');
+const clock=ts=>{try{return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}catch(_){return''}};
+const ago=ts=>{if(!ts)return'';const s=(Date.now()-new Date(ts).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' hr ago';const d=Math.floor(s/86400);return d<30?d+(d===1?' day ago':' days ago'):new Date(ts).toLocaleDateString()};
+const norm=s=>String(s||'').trim().toLowerCase();
+const isEmail=s=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||'').trim());
+const randCode=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')};
+const nowISO=()=>new Date().toISOString();
+const clone=o=>JSON.parse(JSON.stringify(o||{}));
+const subId=e=>norm(e).replace(/[^a-z0-9@._+-]/g,'_').slice(0,180)||'x';
+const plural=(n,w,p)=>`${n} ${n===1?w:(p||w+'s')}`;
+const firstName=n=>{n=String(n||'');if(n.includes(','))return n.split(',')[1].trim().split(' ')[0]||n;return n.split(' ')[0]};
+const displayName=n=>{n=String(n||'');if(!n.includes(','))return n;const[l,f]=n.split(',');return `${(f||'').trim()} ${l.trim()}`.trim()};
+const initials=n=>{const d=displayName(n).replace(/^(Mr|Mrs|Ms|Dr)\.?\s+/i,'').split(/\s+/).filter(Boolean);return((d[0]||'?')[0]+((d[d.length-1]||'')[0]||'')).toUpperCase()};
+const hueOf=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const avatarBg=s=>`hsl(${hueOf(s)} 28% 42%)`;
+const avatarData=n=>`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="${avatarBg(n||'?')}"/><text x="20" y="25.5" font-family="Arial" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">${esc(initials(n||'?'))}</text></svg>`)}`;
+const store={get(k){try{return localStorage.getItem('element.'+k)}catch(_){return null}},set(k,v){try{localStorage.setItem('element.'+k,v)}catch(_){}}};
+
+/* ---------- State ---------- */
+const S={settings:{},loaded:new Set(),me:{id:null,email:null,name:'',isOwner:false,avatarUrl:''},
+  signedIn:MODE==='claude',canWrite:null,readOnly:false,week:mondayOf(new Date()),view:'home',
+  f:{q:'',mine:false,status:'all',clubFilter:'all',clubQ:'',phQ:'',subQ:'',reqTab:'pending',teamTab:'invite',helpTab:'member'},
+  layout:store.get('layout')||(window.innerWidth<900?'cards':'cards'),
+  pending:null,inviteChecked:false,emailDraft:null,mySub:null,mySubChecked:false};
+const COLS_ALL=['assignments','photographers','clubs','roles','requests','awards','invites','emails','users'];
+COLS_ALL.forEach(c=>S[c]=[]);
+let DB=null,USER=null,FB=null;
+
+/* ---------- Roles & derived ---------- */
+const ROLE_RANK={Guest:0,Member:1,Manager:2,Admin:3};
+const ROLE_DESC={
+  Admin:'Runs everything: shoots, roster, points, emails, invites, roles and settings.',
+  Manager:'Runs the week: posts shoots, edits the roster, awards points, approves requests, sends emails, invites members.',
+  Member:'Photographer: sees shoots, checks in, marks shoots done to earn points, requests clubs.'
+};
+const myRoleDoc=()=>S.roles.find(r=>r.id===S.me.id);
+const realRole=()=>S.me.isOwner?'Admin':(myRoleDoc()?.role||'Guest');
+const role=()=>S.preview&&ROLE_RANK[realRole()]>=2?'Member':realRole();
+const canManage=()=>ROLE_RANK[role()]>=2;
+const isAdmin=()=>role()==='Admin';
+function myPid(){
+  const r=myRoleDoc();
+  if(r&&r.photographerId&&S.photographers.some(p=>p.id===r.photographerId))return r.photographerId;
+  if(S.me.email){const p=S.photographers.find(p=>p.email&&norm(p.email)===norm(S.me.email));if(p)return p.id}
+  return null;
+}
+const pById=id=>S.photographers.find(p=>p.id===id);
+const pName=id=>pById(id)?.name||'Removed photographer';
+const ppc=()=>Math.max(0,Number(S.settings.pointsPerCompletion??1));
+const clubByName=n=>S.clubs.find(c=>norm(c.name)===norm(n));
+function shareUrl(){const u=(S.settings.shareUrl||'').trim();if(u)return u.replace(/#.*$/,'');if(MODE==='firebase')return location.origin+location.pathname;return''}
+const sortByName=arr=>[...arr].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+
+const cState=c=>!c?null:(c.status||'approved');
+const isCredited=c=>cState(c)==='approved';
+function pendingCredits(){const out=[];for(const a of S.assignments)for(const[pid,c]of Object.entries(a.completions||{}))if(cState(c)==='pending'&&(a.photographers||[]).includes(pid))out.push({a,pid,c});return out.sort((x,y)=>(x.c.at||'').localeCompare(y.c.at||''))}
+function aStatus(a){
+  const ps=a.photographers||[];
+  if(!ps.length)return'open';
+  const cs=ps.map(p=>cState((a.completions||{})[p]));
+  const ok=cs.filter(x=>x==='approved').length,pend=cs.filter(x=>x==='pending').length;
+  if(ok===ps.length)return'done';
+  if(ok+pend===ps.length)return'review';
+  return ok+pend?'progress':'assigned';
+}
+const ST_LABEL={open:'Needs a photographer',assigned:'Assigned',progress:'Partly done',review:'Pending credit',done:'Completed'};
+function pointsMap(){
+  const m={};
+  for(const p of S.photographers)m[p.id]={earned:0,bonus:Number(p.bonus)||0,awarded:0,shoots:[],awards:[],pending:0};
+  for(const a of S.assignments){
+    for(const[pid,c]of Object.entries(a.completions||{})){
+      if(!m[pid])continue;
+      if(isCredited(c)){m[pid].earned+=Number(c&&c.points!=null?c.points:1)||0;m[pid].shoots.push(a)}
+      else if(cState(c)==='pending')m[pid].pending++;
+    }
+  }
+  for(const w of S.awards){if(m[w.photographerId]){m[w.photographerId].awarded+=Number(w.points)||0;m[w.photographerId].awards.push(w)}}
+  for(const k in m)m[k].total=m[k].earned+m[k].bonus+m[k].awarded;
+  return m;
+}
+function weekRange(){return{from:iso(S.week),to:iso(addDays(S.week,6))}}
+const sortA=(a,b)=>(a.date||'').localeCompare(b.date||'')||(a.start||a.time||'').localeCompare(b.start||b.time||'')||(a.club||'').localeCompare(b.club||'');
+function weekAssignments(){const{from,to}=weekRange();return S.assignments.filter(a=>a.date>=from&&a.date<=to).sort(sortA)}
+function frameNumbers(list){const m={};list.forEach((a,i)=>m[a.id]=i+1);return m}
+
+/* ---------- UI primitives ---------- */
+function toast(msg,kind){const t=document.createElement('div');t.className='toast '+(kind||'');t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),kind==='err'?5600:3000)}
+function errMsg(e){
+  const c=e&&e.code;
+  if(c==='invalid_argument'||c==='permission-denied')return S.readOnly||MODE==='firebase'?"You don't have permission to do that. Ask an Admin to give you the right role.":"That change didn't save because you can only view this page. Ask an Admin to share it with you as an Editor.";
+  if(c==='quota_exceeded'||c==='resource-exhausted')return'Storage limit reached. Delete old shoots or email history, then try again.';
+  if(c==='resource_exhausted')return'Too many changes at once. Wait a second and try again.';
+  if(c==='revoked')return'Your access to this page changed. Reload to continue.';
+  if(c==='unauthenticated')return'Sign in again to keep going.';
+  return(e&&e.message)||'That didn’t work. Try again.';
+}
+async function W(fn,okMsg,kind){
+  if(!DB){toast('Not connected. Sign in to make changes.','err');return false}
+  try{await fn();if(okMsg)toast(okMsg,kind);return true}
+  catch(e){
+    if(e&&(e.code==='unavailable')){await new Promise(r=>setTimeout(r,600+Math.random()*700));try{await fn();if(okMsg)toast(okMsg,kind);return true}catch(e2){toast(errMsg(e2),'err');return false}}
+    if(e&&e.code==='invalid_argument'&&MODE==='claude'&&S.canWrite!==true){S.readOnly=true;render()}
+    toast(errMsg(e),'err');return false}
+}
+async function copyText(txt,label){
+  try{await navigator.clipboard.writeText(txt);toast(label||'Copied')}
+  catch(_){openModal({title:'Copy this',body:`<textarea readonly style="min-height:160px" id="cpy">${esc(txt)}</textarea><p class="help">Select all, then copy.</p>`,actions:[{label:'Done',cls:'ink'}]});setTimeout(()=>{const t=$('#cpy');t&&t.select()},50)}
+}
+function openModal({title,body,actions=[],wide=false,onOpen,cls=''}){
+  const root=$('#modal-root');
+  root.innerHTML=`<div class="ov"><div class="modal ${wide?'wide':''} ${cls}" role="dialog" aria-modal="true" aria-labelledby="mh"><div class="mh"><h2 id="mh">${esc(title)}</h2><button class="ibtn no-print" data-close aria-label="Close">${I.x}</button></div><div class="mb">${body}</div>${actions.length?`<div class="mf no-print">${actions.map((a,i)=>a.href?`<a class="btn ${a.cls||''}" href="${esc(a.href)}" target="_blank" rel="noopener" data-mi="${i}">${a.label}</a>`:`<button class="btn ${a.cls||''}" data-mi="${i}">${a.label}</button>`).join('')}</div>`:''}</div></div>`;
+  const ov=$('.ov',root);
+  ov.addEventListener('mousedown',e=>{if(e.target===ov)closeModal()});
+  $('[data-close]',root).onclick=closeModal;
+  $$('[data-mi]',root).forEach(b=>b.addEventListener('click',async ev=>{const a=actions[+b.dataset.mi];if(a.href){a.onClick&&a.onClick();return}if(a.onClick){b.disabled=true;const keep=await a.onClick();b.disabled=false;if(keep===false)return}closeModal()}));
+  if(onOpen)onOpen(root);
+  const f=$('.mb input:not([type=hidden]):not([readonly]):not([type=checkbox]),.mb select,.mb textarea',root);if(f&&!('ontouchstart'in window))f.focus();
+}
+function closeModal(){$('#modal-root').innerHTML=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+function confirmBox(title,msg,okLabel='Delete',cls='pri'){
+  return new Promise(res=>openModal({title,body:`<p style="margin:0">${msg}</p>`,actions:[{label:'Cancel',onClick:()=>res(false)},{label:okLabel,cls,onClick:()=>res(true)}]}));
+}
+function avatarHTML(name,me){return`<span class="av" style="background:${avatarBg(name)}" aria-hidden="true">${esc(initials(name))}</span>`}
+
+/* ---------- QR ---------- */
+function qrSVG(text){
+  if(!window.qrcode)return'<p class="help">QR codes couldn’t load. Check your connection and reload.</p>';
+  try{const q=qrcode(0,'M');q.addData(text);q.make();const n=q.getModuleCount(),m=4;let d='';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+=`M${c+m} ${r+m}h1v1h-1z`;
+    return`<svg class="qr" viewBox="0 0 ${n+2*m} ${n+2*m}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#17161B"/></svg>`}
+  catch(e){return'<p class="help">That link is too long for a QR code.</p>'}
+}
+const checkinUrl=id=>shareUrl()+'#checkin-'+id;
+const canPrint=()=>MODE==='firebase';
+
+/* ---------- Navigation ---------- */
+const VIEWS=[
+  {id:'home',label:'Home',icon:'home'},
+  {id:'assignments',label:'This week’s shoots',short:'Shoots',icon:'cal'},
+  {id:'points',label:'Points & roster',short:'Points',icon:'star'},
+  {id:'requests',label:'Request a club',short:'Requests',icon:'hand'},
+  {id:'clubs',label:'Club coverage',icon:'grid'},
+  {id:'email',label:'Send an email',icon:'mail',need:'manage',group:'Officers'},
+  {id:'team',label:'Team & invites',icon:'users',need:'manage'},
+  {id:'config',label:'Settings',icon:'gear',need:'admin'},
+  {id:'help',label:'How to use this',icon:'help',group:'Help'}
+];
+const allowed=v=>!v.need||(v.need==='manage'?canManage():isAdmin());
+function logoHTML(){
+  if(S.settings.logoData)return`<img src="${esc(S.settings.logoData)}" alt="Element">`;
+  return`<div><div class="word">ELEMENT</div><div class="tag">Club photo tracker<br>${esc(S.settings.schoolYear||'2026–27')}</div></div>`;
+}
+function counts(){return{requests:S.requests.filter(q=>q.status==='pending').length,assignments:weekAssignments().filter(a=>aStatus(a)==='open').length,credit:canManage()?pendingCredits().length:0}}
+function railHTML(){
+  const c=counts(),r=role(),mp=myPid(),pm=pointsMap();
+  let nav='';
+  for(const v of VIEWS){if(!allowed(v))continue;if(v.group)nav+=`<div class="group">${v.group}</div>`;
+    const n=canManage()&&v.id==='requests'&&c.requests?c.requests:(v.id==='assignments'&&c.assignments?c.assignments:(v.id==='home'&&c.credit?c.credit:0));
+    nav+=`<a href="#${v.id}" class="${S.view===v.id?'on':''}" ${S.view===v.id?'aria-current="page"':''}>${I[v.icon]}<span>${v.label}</span>${n?`<span class="ct" title="${v.id==='assignments'?'Shoots that need a photographer':v.id==='home'?'Shoots waiting for credit':'Requests waiting'}">${n}</span>`:''}</a>`}
+  return`<aside class="rail"><div class="brand">${logoHTML()}</div><nav aria-label="Main">${nav}</nav>
+  <div class="foot"><div class="who"><img src="${esc(S.me.avatarUrl||avatarData(S.me.name||'You'))}" alt=""><div><div class="n">${esc(S.me.name||'You')}</div><div class="r">${esc(r==='Guest'?'Visitor':r)}</div></div>${mp?`<div class="pts" title="Your points">${pm[mp]?.total??0}<small>points</small></div>`:''}</div>
+  ${ROLE_RANK[realRole()]>=2?`<button class="signout" data-act="preview">${S.preview?'Stop previewing':'Preview as a Member'}</button>`:''}${MODE==='firebase'?`<button class="signout" data-act="signout">Sign out</button>`:''}</div></aside>`;
+}
+function mobileHTML(){
+  const mp=myPid(),pm=pointsMap(),c=counts();
+  const tabs=[['home','Home','home'],['assignments','Shoots','cal'],['points','Points','star'],['requests','Requests','hand']];
+  const moreOn=!tabs.some(t=>t[0]===S.view);
+  return`<header class="mtop"><div class="brand">${logoHTML()}</div><div class="sp"></div>${mp?`<span class="pts">${pm[mp]?.total??0} pts</span>`:''}<img class="av" src="${esc(S.me.avatarUrl||avatarData(S.me.name||'You'))}" alt=""></header>
+  <nav class="mtabs" aria-label="Main">${tabs.map(([id,l,ic])=>`<a href="#${id}" class="${S.view===id?'on':''}">${I[ic]}${l}${(id==='requests'&&canManage()&&c.requests)||(id==='assignments'&&c.assignments)||(id==='home'&&c.credit)?'<span class="dot"></span>':''}</a>`).join('')}<button data-act="moreMenu" class="${moreOn?'on':''}">${I.more}More</button></nav>`;
+}
+function openMoreMenu(){
+  openModal({title:'More',body:`<div class="list">${VIEWS.filter(v=>allowed(v)&&!['home','assignments','points','requests'].includes(v.id)).map(v=>`<a class="li" href="#${v.id}" style="text-decoration:none;color:inherit;padding-left:4px">${I[v.icon].replace('<svg','<svg style="width:20px;height:20px"')}<div class="what"><div class="c">${v.label}</div></div></a>`).join('')}${ROLE_RANK[realRole()]>=2?`<button class="btn quiet" data-act="preview" style="margin-top:10px">${S.preview?'Stop previewing':'Preview as a Member'}</button>`:''}${MODE==='firebase'?`<button class="btn quiet" data-act="signout" style="margin-top:10px">Sign out</button>`:''}</div>`});
+}
+
+/* ---------- Render ---------- */
+let raf=0;
+function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(doRender)}
+function doRender(){
+  const root=$('#root');
+  if(MODE==='firebase'&&!S.signedIn){root.innerHTML=landingHTML();return}
+  const v=VIEWS.find(x=>x.id===S.view);if(!v||!allowed(v))S.view='home';
+  if(!root.querySelector('.app')){root.innerHTML=`<div class="app"><div id="railwrap"></div><div><div id="mwrap"></div><main id="main"></main></div></div>`}
+  $('#railwrap').innerHTML=railHTML();$('#mwrap').innerHTML=mobileHTML();
+  const main=$('#main');
+  if(S.view==='email'&&main.dataset.view==='email'&&$('#em-form')){refreshEmailRecipients();return}
+  const ae=document.activeElement,aid=ae&&ae.id&&main.contains(ae)?ae.id:null,sel=aid&&ae.selectionStart!=null?[ae.selectionStart,ae.selectionEnd]:null;
+  let html='';
+  if(!DB)html+=`<div class="note red">${I.info}<div><b>Not connected.</b> Open this page while signed in to load the tracker.</div></div>`;
+  else if(S.readOnly)html+=`<div class="note">${I.info}<div><b>You can look, but changes won’t save.</b> Ask an Admin to share this page with you as an Editor.</div></div>`;
+  if(S.preview)html+=`<div class="note warn">${I.info}<div style="flex:1"><b>You’re previewing what a Member sees.</b> Officer buttons are hidden. Your own shoots still work as normal.</div><button class="btn sm ink" data-act="preview">Stop previewing</button></div>`;
+  const allLoaded=['assignments','photographers','roles'].every(c=>S.loaded.has(c));
+  if(DB&&!allLoaded)html+=`<div class="loading"><div class="spin"></div>Loading…</div>`;
+  else html+=({home:vHome,assignments:vAssignments,points:vPoints,requests:vRequests,clubs:vClubs,email:vEmail,team:vTeam,config:vConfig,help:vHelp}[S.view])();
+  main.innerHTML=html;main.dataset.view=S.view;
+  if(aid){const el=document.getElementById(aid);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}
+  if(S.view==='team')fillProfiles();
+  if(S.view==='email')initEmail();
+  if(allLoaded)handlePending();
+}
+
+/* ---------- Landing (hosted, signed out) ---------- */
+function landingHTML(){
+    return`<div class="landing"><section class="l">
+    <div class="brand">${logoHTML()}</div>
+    <div><h1 class="big">Shoot it.<br>Upload it.<br><em>Get credit.</em></h1>
+    <p>The Element photo team’s weekly club shoots, check-ins, and credit points in one place.</p>
+    <div class="sheetstrip" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+    <p class="small" style="color:#8E8D96">Chaminade Element Media</p></section>
+  <section class="r">
+    <div class="card"><h2>Sign in</h2><p class="muted" style="margin:4px 0 18px">Use your school Google account to see your shoots, check in and get your points.</p>
+      <button class="gbtn" data-act="googleSignIn">${I.google} Continue with Google</button>
+      ${S.pending&&S.pending.type==='invite'?`<p class="help" style="margin-top:12px">Sign in to accept your invite.</p>`:''}
+      ${S.pending&&S.pending.type==='checkin'?`<p class="help" style="margin-top:12px">Sign in to check in to your shoot.</p>`:''}</div>
+  </section></div>`;
+}
+
+/* ---------- View: Home ---------- */
+function vHome(){
+  const mp=myPid(),pm=pointsMap(),man=canManage(),r=role();
+  const hr=new Date().getHours();const greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const name=firstName(mp?pName(mp):S.me.name)||'';
+  const today=todayISO();
+  const upcoming=S.assignments.filter(a=>a.date>=today).sort(sortA);
+  const mine=mp?S.assignments.filter(a=>(a.photographers||[]).includes(mp)&&!isCredited((a.completions||{})[mp])).sort(sortA):[];
+  const pc=man?pendingCredits():[];
+  const open=upcoming.filter(a=>aStatus(a)==='open'&&!a.full).slice(0,6);
+  const myReqs=mp?S.requests.filter(q=>q.photographerId===mp&&q.status==='pending'):[];
+  const pend=S.requests.filter(q=>q.status==='pending');
+  let h=`<div class="hello"><div><h1>${greet}${name?', '+esc(name):''}.</h1><p class="lede">${man?`Here’s what needs you this week, ${fmtMD(S.week)}–${fmtMD(addDays(S.week,6))}.`:mp?'Here are your shoots and points.':'Welcome to the Element photo team tracker.'}</p></div>
+    ${mp?`<div class="pointcard"><div class="v">${pm[mp].total}</div><div class="l"><b>Your points</b>${plural(pm[mp].shoots.length,'shoot')} credited${pm[mp].awarded?`, ${pm[mp].awarded>0?'+':''}${pm[mp].awarded} awarded`:''}${pm[mp].pending?`<br><span style="color:#C9BCF0">${pm[mp].pending} pending credit</span>`:''}</div></div>`:''}</div>`;
+
+  if(r==='Guest'&&S.signedIn&&DB)h+=`<div class="note">${I.info}<div><b>You don’t have a team role yet.</b> If an officer sent you an invite link or QR code, open it to join. Until then you can look around.</div></div>`;
+  if(!mp&&r!=='Guest'&&S.photographers.length)h+=`<div class="note warn">${I.info}<div style="flex:1"><b>Which photographer are you?</b> Link your name so you can check in, mark shoots done and earn points.<div class="row" style="margin-top:10px;max-width:520px"><select id="linkme"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><button class="btn ink" data-act="linkMe" style="flex:none">Link my name</button></div></div></div>`;
+
+  if(MODE==='firebase'&&S.me.isOwner&&!S.photographers.length&&!S.assignments.length)h+=`<div class="note good">${I.info}<div style="flex:1"><b>Your tracker is empty.</b> Import the roster, clubs and this week’s shoots from your spreadsheet in one click.<div style="margin-top:10px"><button class="btn ink" data-act="importSeed">Import spreadsheet data</button></div></div></div>`;
+
+  h+=`<div class="grid-side"><div style="display:flex;flex-direction:column;gap:20px">`;
+  if(mp)h+=`<section class="panel tight"><div class="panel-h"><h2>Your shoots</h2><a class="btn sm quiet" href="#assignments">See the whole week</a></div>
+    ${mine.length?`<div class="list">${mine.map(a=>homeItem(a,mp,true)).join('')}</div>`:`<div class="empty"><strong>Nothing on your list</strong>Grab an open shoot below or request a club.<br><a class="btn pri" href="#requests">${I.hand} Request a club</a></div>`}</section>`;
+  if(man&&pc.length)h+=`<section class="panel tight"><div class="panel-h"><h2>Waiting for credit</h2>${pc.length>1?`<button class="btn sm" data-act="approveAll">Give credit to all</button>`:''}</div><div class="list">${pc.map(({a,pid,c})=>{const d=parseISO(a.date);const drive=c.link||a.driveLink||clubByName(a.club)?.driveLink;return`<div class="li"><div class="when"><b>${d?d.getDate():''}</b><span>${d?d.toLocaleDateString('en-US',{month:'short'}):''}</span></div><div class="what"><div class="c">${esc(displayName(pName(pid)))}</div><div class="m">${esc(a.club)}, marked done ${esc(ago(c.at))}</div></div><div class="go">${drive?`<a class="btn sm quiet" href="${esc(drive)}" target="_blank" rel="noopener">${I.folder} Check photos</a>`:''}<button class="btn sm pri" data-act="approveC" data-id="${a.id}" data-pid="${pid}">${I.check} Give credit</button><button class="btn sm" data-act="returnC" data-id="${a.id}" data-pid="${pid}">Send back</button></div></div>`}).join('')}</div></section>`;
+  if(myReqs.length)h+=`<section class="panel tight"><div class="panel-h"><h2>Waiting for approval</h2></div><div class="list">${myReqs.map(q=>`<div class="li"><div class="when"><b>${parseISO(q.date)?parseISO(q.date).getDate():''}</b><span>${esc(parseISO(q.date)?parseISO(q.date).toLocaleDateString('en-US',{month:'short'}):'')}</span></div><div class="what"><div class="c">${esc(q.club)}</div><div class="m">Requested ${esc(ago(q.at))}</div></div><span class="st progress">Pending</span></div>`).join('')}</div></section>`;
+  if(man&&pend.length)h+=`<section class="panel tight"><div class="panel-h"><h2>Requests to approve</h2><a class="btn sm quiet" href="#requests">All requests</a></div><div class="list">${pend.slice(0,5).map(q=>`<div class="li"><div class="when"><b>${parseISO(q.date)?parseISO(q.date).getDate():''}</b><span>${esc(parseISO(q.date)?parseISO(q.date).toLocaleDateString('en-US',{month:'short'}):'')}</span></div><div class="what"><div class="c">${esc(displayName(pName(q.photographerId)))}</div><div class="m">wants to shoot ${esc(q.club)}</div></div><div class="go"><button class="btn sm pri" data-act="reqOk" data-id="${q.id}">${I.check} Approve</button><button class="btn sm" data-act="reqNo" data-id="${q.id}">Decline</button></div></div>`).join('')}</div></section>`;
+  h+=`<section class="panel tight"><div class="panel-h"><h2>Open shoots</h2><span class="muted small">${open.length?'No photographer yet':''}</span></div>
+    ${open.length?`<div class="list">${open.map(a=>homeItem(a,mp,false)).join('')}</div>`:`<div class="empty"><strong>Every upcoming shoot has a photographer</strong>Nice work, team.</div>`}</section>`;
+  h+=`</div><div style="display:flex;flex-direction:column;gap:20px">`;
+  if(man){
+    const wk=weekAssignments(),c={open:0,assigned:0,progress:0,review:0,done:0};wk.forEach(a=>c[aStatus(a)]++);
+    h+=`<section class="panel"><h2>This week</h2>${progressInner(wk.length,c)}<a class="btn block" href="#assignments" style="margin-top:14px">Open this week’s shoots</a></section>`;
+  }
+  if(isAdmin())h+=setupChecklist();
+  const ranked=S.photographers.filter(p=>pm[p.id].total>0).sort((a,b)=>pm[b.id].total-pm[a.id].total).slice(0,5);
+  h+=`<section class="panel tight"><div class="panel-h"><h2>Top photographers</h2><a class="btn sm quiet" href="#points">Leaderboard</a></div>${ranked.length?leaderboardHTML(ranked,pm):'<div class="empty"><strong>No points yet</strong>Points show up as shoots get marked done.</div>'}</section>`;
+  h+=`</div></div>`;
+  return h;
+}
+function homeItem(a,mp,mine){
+  const d=parseISO(a.date);const ck=(a.checkins||{})[mp];const cs=mine?(a.completions||{})[mp]:null,cst=cState(cs);
+  const btns=mine?(cst==='pending'?`<span class="st review">Pending credit</span>`:`${cst==='returned'?`<span class="st open" title="${esc(cs.note||'')}">Sent back</span>`:''}${ck||cst?'':`<button class="btn sm" data-act="checkin" data-id="${a.id}">${I.pin} Check in</button>`}${ck&&!cst?`<span class="st grey">Checked in ${esc(clock(ck.at))}</span>`:''}<button class="btn sm pri" data-act="complete" data-id="${a.id}" data-pid="${mp}">${I.check} ${cst==='returned'?'Mark done again':'Mark done'}</button>`)
+    :(canManage()?`<button class="btn sm pri" data-act="editA" data-id="${a.id}">Assign</button>`:(mp?(S.requests.some(q=>q.photographerId===mp&&q.status==='pending'&&(q.assignmentId===a.id||(norm(q.club)===norm(a.club)&&q.date===a.date)))?'<span class="st progress">Requested</span>':`<button class="btn sm pri" data-act="reqA" data-id="${a.id}">${I.hand} I’ll take it</button>`):''));
+  return`<div class="li"><div class="when"><b>${d?d.getDate():''}</b><span>${d?d.toLocaleDateString('en-US',{weekday:'short'}):''}</span></div>
+    <div class="what"><div class="c">${esc(a.club)}</div><div class="m">${esc(timeRange(a))}${a.location?', '+esc(a.location):''}</div>${a.task?`<div class="m" style="color:var(--ink2)">${esc(a.task)}</div>`:''}${mine&&cst==='returned'&&cs.note?`<div class="m" style="color:var(--crimson)">Officer note: ${esc(cs.note)}</div>`:''}</div><div class="go">${btns}</div></div>`;
+}
+function setupChecklist(){
+  const items=[
+    [!!S.settings.logoData,'Upload the Element logo','#config'],
+    [!!myPid(),'Link yourself to your roster name','#home'],
+    [S.roles.some(r=>!r.owner&&(r.role==='Admin'||r.role==='Manager'))||S.invites.some(v=>v.role!=='Member'),'Invite your officers','#team'],
+    [S.roles.some(r=>r.role==='Member')||S.invites.some(v=>v.role==='Member'),'Invite your photographers','#team'],
+    [S.photographers.length>0&&S.photographers.filter(p=>p.email).length>=S.photographers.length*0.8,'Add everyone’s email to the roster','#points'],
+    [S.emails.length>0,'Send your first weekly email','#email']
+  ];
+  const done=items.filter(i=>i[0]).length;
+  if(done===items.length)return'';
+  return`<section class="panel"><h2>Get set up</h2><p class="muted small" style="margin:0 0 6px">${done} of ${items.length} done</p><ul class="steps">${items.map(([ok,t,href])=>`<li class="${ok?'ok':''}"><span class="box">${ok?I.check:''}</span><span class="tx">${t}</span>${ok?'':`<a class="btn sm" href="${href}">Go</a>`}</li>`).join('')}</ul></section>`;
+}
+function progressInner(total,c){
+  const pct=k=>total?c[k]/total*100:0;
+  return`<div style="display:flex;align-items:baseline;gap:8px;margin:6px 0 10px"><span class="num" style="font-size:44px;line-height:1">${c.done}</span><span class="muted">of ${plural(total,'shoot')} completed</span></div>
+  <div class="segbar" role="img" aria-label="${c.done} done, ${c.review} pending credit, ${c.progress} partly done, ${c.assigned} assigned, ${c.open} need a photographer">${['done','review','progress','assigned','open'].map(k=>c[k]?`<i style="width:${pct(k)}%;background:var(--c-${k})"></i>`:'').join('')}</div>
+  <div class="legend" style="margin-top:10px"><span><i style="background:var(--c-done)"></i>${c.done} done</span>${c.review?`<span><i style="background:var(--c-review)"></i>${c.review} pending credit</span>`:''}<span><i style="background:var(--c-progress)"></i>${c.progress} partly done</span><span><i style="background:var(--c-assigned)"></i>${c.assigned} assigned</span><span><i style="background:var(--c-open)"></i>${c.open} need a photographer</span></div>`;
+}
+async function linkMe(pid){
+  if(!pid){toast('Choose your name first.','err');return}
+  const ex=myRoleDoc();
+  if(ex)return W(()=>DB.doc('roles/'+S.me.id).update({photographerId:pid}),'Linked to '+displayName(pName(pid)));
+  if(S.me.isOwner)return W(()=>DB.doc('roles/'+S.me.id).set({role:'Admin',owner:true,email:S.me.email||'',photographerId:pid,joinedAt:nowISO()}),'Linked to '+displayName(pName(pid)));
+}
+
+/* ---------- View: Assignments ---------- */
+function vAssignments(){
+  const wk=weekAssignments(),mp=myPid(),man=canManage(),fno=frameNumbers(wk);
+  const q=norm(S.f.q);
+  const list=wk.filter(a=>{
+    if(S.f.mine&&!(a.photographers||[]).includes(mp))return false;
+    if(S.f.status!=='all'&&aStatus(a)!==S.f.status)return false;
+    if(!q)return true;
+    return[a.club,a.location,a.task,a.notes,...(a.photographers||[]).map(pName)].some(x=>norm(x).includes(q));
+  });
+  const c={open:0,assigned:0,progress:0,review:0,done:0};wk.forEach(a=>c[aStatus(a)]++);
+  const isThis=iso(S.week)===iso(mondayOf(new Date()));
+  const note=S.settings.weekNote||'';
+  let body='';
+  if(!list.length)body=`<div class="panel"><div class="empty"><strong>${wk.length?'No shoots match those filters':'No shoots posted for this week'}</strong>${man&&!wk.length?'Add the week’s club meetings, or copy last week’s and update them.':'Try another week with the arrows.'}${man&&!wk.length?`<br><button class="btn pri" data-act="newA">${I.plus} Add a shoot</button>`:''}</div></div>`;
+  else if(S.layout==='sheet')body=sheetHTML(list,mp,man);
+  else body=contactSheet(list,mp,man,fno);
+  return`
+  <div class="ph"><div class="t"><h1>Club photo assignments</h1><p class="lede">Week of ${esc(fmtLong(S.week))}. ${c.open?`${plural(c.open,'shoot')} still ${c.open===1?'needs':'need'} a photographer.`:'Every shoot has a photographer.'}</p></div>
+    ${man?`<button class="btn" data-act="weekQR">${I.qr} Check-in QR codes</button><button class="btn" data-act="copyWeek">${I.dup} Copy to next week</button><button class="btn pri" data-act="newA">${I.plus} Add a shoot</button>`:`<a class="btn pri" href="#requests">${I.hand} Request a club</a>`}</div>
+  ${note?`<div class="note">${I.info}<div>${esc(note)}</div></div>`:''}
+  <div class="progress"><div class="big">${c.done}<span>/${wk.length}</span></div><div class="segbar" role="img" aria-label="Week progress">${['done','review','progress','assigned','open'].map(k=>c[k]?`<i style="width:${c[k]/wk.length*100}%;background:var(--c-${k})"></i>`:'').join('')}</div>
+    <div class="legend"><span><i style="background:var(--c-done)"></i>${c.done} completed</span>${c.review?`<span><i style="background:var(--c-review)"></i>${c.review} pending credit</span>`:''}<span><i style="background:var(--c-progress)"></i>${c.progress} partly done</span><span><i style="background:var(--c-assigned)"></i>${c.assigned} assigned</span><span><i style="background:var(--c-open)"></i>${c.open} need a photographer</span></div></div>
+  <div class="toolbar">
+    <div class="week"><button data-act="wkPrev" aria-label="Previous week">‹</button><div class="lbl">${esc(fmtMD(S.week))} – ${esc(fmtMD(addDays(S.week,6)))}</div><button data-act="wkNext" aria-label="Next week">›</button></div>
+    ${isThis?'':`<button class="btn quiet" data-act="wkToday">Back to this week</button>`}
+    <div class="search">${I.search}<input id="aq" type="search" placeholder="Search club, name, room" value="${esc(S.f.q)}" data-in="q" aria-label="Search shoots"></div>
+    <select data-act="fstatus" aria-label="Filter by status" style="width:auto">${[['all','All shoots'],['open','Needs a photographer'],['assigned','Assigned'],['progress','Partly done'],['review','Pending credit'],['done','Completed']].map(([k,l])=>`<option value="${k}" ${S.f.status===k?'selected':''}>${l}</option>`).join('')}</select>
+    ${mp?`<label class="check"><input type="checkbox" data-act="fmine" ${S.f.mine?'checked':''}> Only my shoots</label>`:''}
+    <span class="sp"></span>
+    <div class="seg" role="group" aria-label="Layout"><button class="${S.layout==='cards'?'on':''}" data-act="layout" data-v="cards">Cards</button><button class="${S.layout==='sheet'?'on':''}" data-act="layout" data-v="sheet">Spreadsheet</button></div>
+  </div>
+  ${body}`;
+}
+function personLine(a,p,mp,man){
+  const c=(a.completions||{})[p],st=cState(c),mine=p===mp,ck=(a.checkins||{})[p];
+  let sub='',cls='';
+  if(st==='approved')sub=`Credited ${esc(ago(c.approvedAt||c.at))}`;
+  else if(st==='pending')sub=`Marked done ${esc(ago(c.at))}`+(man&&c.link?` · <a href="${esc(c.link)}" target="_blank" rel="noopener">photos</a>`:'');
+  else if(st==='returned'){sub=`Sent back: ${esc(c.note||'ask an officer')}`;cls='back'}
+  else if(ck)sub=`Checked in ${esc(clock(ck.at))}`;
+  let btn;
+  if(st==='approved')btn=`<button class="done-btn is-done" data-act="uncomplete" data-id="${a.id}" data-pid="${p}" ${man?'title="Remove credit"':'disabled'}>${I.check} Done <span class="plus">+${esc(c.points??1)}</span></button>`;
+  else if(st==='pending')btn=man?`<button class="btn sm pri" data-act="approveC" data-id="${a.id}" data-pid="${p}">${I.check} Give credit</button><button class="btn sm" data-act="returnC" data-id="${a.id}" data-pid="${p}">Send back</button>`
+    :`<button class="done-btn is-pending" data-act="withdraw" data-id="${a.id}" data-pid="${p}" ${mine?'title="Undo"':'disabled'}>Pending credit</button>`;
+  else btn=`<button class="done-btn" data-act="complete" data-id="${a.id}" data-pid="${p}" ${man||mine?'':'disabled'}>${man||mine?'Mark done':'Not done'}</button>`;
+  return`<div class="pl ${mine?'me':''}">${avatarHTML(pName(p))}<div class="grow"><div class="nm">${esc(displayName(pName(p)))}${mine?' (you)':''}</div>${sub?`<div class="sub ${cls}">${sub}</div>`:''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${btn}</div></div>`;
+}
+function contactSheet(list,mp,man,fno){
+  const days={};list.forEach(a=>(days[a.date]=days[a.date]||[]).push(a));
+  const today=todayISO();
+  return Object.keys(days).sort().map(d=>{const dt=parseISO(d);
+    return`<section class="day"><div class="dlabel ${d===today?'today':''}"><div class="dw">${dt?dt.toLocaleDateString('en-US',{weekday:'short'}):esc(d)}</div><div class="dd">${dt?esc(fmtMD(dt)):''}${d===today?', today':''}</div></div>
+    <div class="frames">${days[d].map(a=>{const st=aStatus(a),ps=a.photographers||[],drive=a.driveLink||clubByName(a.club)?.driveLink;
+      const asked=mp&&S.requests.some(q=>q.photographerId===mp&&q.status==='pending'&&(q.assignmentId===a.id||(norm(q.club)===norm(a.club)&&q.date===a.date)));const canReq=!man&&mp&&!a.full&&st!=='done'&&st!=='review'&&!ps.includes(mp)&&!asked;
+      const imIn=ps.includes(mp)&&!(a.checkins||{})[mp]&&!cState((a.completions||{})[mp]);
+      return`<article class="frame s-${st}" aria-label="${esc(a.club)}"><span class="fno" title="Shoot ${fno[a.id]} this week">${pad(fno[a.id])}</span>
+        <div class="club">${esc(a.club)}</div>
+        <div class="meta"><div>${I.clock}<span>${esc(timeRange(a))}</span></div>${a.location?`<div>${I.pin}<span>${esc(a.location)}</span></div>`:''}</div>
+        ${a.task?`<div class="task">${esc(a.task)}</div>`:''}
+        ${a.full?`<div class="flag">No more photographers needed</div>`:''}
+        ${a.notes?`<div class="fnote">${esc(a.notes)}</div>`:''}
+        <div class="people">${ps.length?ps.map(p=>personLine(a,p,mp,man)).join(''):`<div class="pl"><span class="st open">${ST_LABEL.open}</span></div>`}</div>
+        <div class="acts">${imIn?`<button class="btn sm" data-act="checkin" data-id="${a.id}">${I.pin} Check in</button>`:''}${canReq?`<button class="btn sm pri" data-act="reqA" data-id="${a.id}">${I.hand} I’ll take it</button>`:''}${asked?'<span class="st progress">Requested</span>':''}${drive?`<a class="btn sm quiet" href="${esc(drive)}" target="_blank" rel="noopener">${I.folder} Drive folder</a>`:''}<span class="sp"></span>
+        ${man?`<button class="ibtn" title="Check-in QR code" aria-label="Check-in QR code" data-act="qrA" data-id="${a.id}">${I.qr}</button><button class="ibtn" title="Email a reminder" aria-label="Email a reminder" data-act="remindA" data-id="${a.id}">${I.bell}</button><button class="ibtn" title="Edit" aria-label="Edit" data-act="editA" data-id="${a.id}">${I.pen}</button><button class="ibtn" title="Delete" aria-label="Delete" data-act="delA" data-id="${a.id}">${I.trash}</button>`:''}</div>
+      </article>`}).join('')}</div></section>`}).join('');
+}
+function sheetHTML(list,mp,man){
+  let rows='',last=null;
+  for(const a of list){
+    if(a.date!==last){last=a.date;rows+=`<tr class="dayrow"><td colspan="9">${esc(fmtDay(a.date))}</td></tr>`}
+    const st=aStatus(a),ps=a.photographers||[],drive=a.driveLink||clubByName(a.club)?.driveLink;
+    rows+=`<tr><td class="nowrap" data-l="Time">${esc(timeRange(a))}</td><td class="b" data-l="Club">${esc(a.club)}</td>
+      <td data-l="Photographers" style="min-width:250px">${ps.length?`<div style="display:flex;flex-direction:column;gap:4px">${ps.map(p=>personLine(a,p,mp,man)).join('')}</div>`:'<span class="muted">N/A</span>'}</td>
+      <td data-l="Location">${esc(a.location||'')}</td><td data-l="Status"><span class="st ${st}">${ST_LABEL[st]}</span></td>
+      <td data-l="Task" style="min-width:200px">${esc(a.task||'')}</td><td data-l="Notes" style="max-width:240px">${a.full?'<b style="color:var(--crimson)">No more photographers needed.</b> ':''}${esc(a.notes||'')}</td>
+      <td data-l="Drive">${drive?`<a href="${esc(drive)}" target="_blank" rel="noopener">Folder</a>`:'<span class="muted">None</span>'}</td>
+      <td class="act">${man?`<button class="ibtn" aria-label="Check-in QR" data-act="qrA" data-id="${a.id}">${I.qr}</button><button class="ibtn" aria-label="Email a reminder" data-act="remindA" data-id="${a.id}">${I.bell}</button><button class="ibtn" aria-label="Edit" data-act="editA" data-id="${a.id}">${I.pen}</button><button class="ibtn" aria-label="Delete" data-act="delA" data-id="${a.id}">${I.trash}</button>`:(mp&&!a.full&&st!=='done'&&!ps.includes(mp)?`<button class="btn sm" data-act="reqA" data-id="${a.id}">I’ll take it</button>`:'')}</td></tr>`;
+  }
+  return`<div class="sheet"><table class="stack"><thead><tr><th>Time</th><th>Club</th><th>Photographers and completion</th><th>Location</th><th>Status</th><th>Task</th><th>Notes</th><th>Drive</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function photographerPicker(selected,name='ps'){
+  const sel=new Set(selected||[]);
+  const opts=sortByName(S.photographers).map(p=>`<label data-n="${esc(norm(p.name+' '+displayName(p.name)))}"><input type="checkbox" name="${name}" value="${p.id}" ${sel.has(p.id)?'checked':''}> ${esc(p.name)}</label>`).join('');
+  return`<div class="picker" data-picker><div class="sel chips" data-selrow></div><input type="search" class="pq" placeholder="Search ${S.photographers.length} photographers" aria-label="Search photographers"><div class="opts">${opts||'<p class="help" style="padding:8px">No photographers yet. Add them on the Points & roster page.</p>'}</div></div>`;
+}
+function wirePicker(root,emptyText){
+  const pk=$('[data-picker]',root);if(!pk)return;
+  const upd=()=>{const ch=$$('input[type=checkbox]:checked',pk);$('[data-selrow]',pk).innerHTML=ch.length?ch.map(c=>`<span class="chip on">${esc(displayName(pById(c.value)?.name||''))}</span>`).join(''):`<span class="help" style="margin:0">${emptyText||'Nobody yet. The shoot will show as needing a photographer.'}</span>`;pk.dispatchEvent(new CustomEvent('picked',{detail:ch.map(c=>c.value)}))};
+  $('.pq',pk).addEventListener('input',e=>{const q=norm(e.target.value);$$('label',pk).forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')});
+  pk.addEventListener('change',upd);upd();
+}
+const clubDatalist=()=>`<datalist id="clubs-dl">${sortByName(S.clubs).map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>`;
+
+function openAssignmentForm(a){
+  const isNew=!a;a=a||{date:iso(S.week>new Date()?S.week:new Date()),start:'15:00',end:'16:00',photographers:[]};
+  openModal({title:isNew?'Add a shoot':'Edit shoot',wide:true,body:`
+    <form id="af" onsubmit="return false">
+      <div class="row"><div class="field"><label class="f" for="af-club">Club</label><input id="af-club" type="text" name="club" list="clubs-dl" value="${esc(a.club||'')}" placeholder="Start typing a club" required>${clubDatalist()}</div>
+      <div class="field"><label class="f" for="af-date">Date</label><input id="af-date" type="date" name="date" value="${esc(a.date)}" required></div></div>
+      <div class="row"><div class="field"><label class="f" for="af-s">Starts</label><input id="af-s" type="time" name="start" value="${esc(a.start||'')}"></div>
+      <div class="field"><label class="f" for="af-e">Ends</label><input id="af-e" type="time" name="end" value="${esc(a.end||'')}"></div>
+      <div class="field"><label class="f" for="af-loc">Location</label><input id="af-loc" type="text" name="location" value="${esc(a.location||'')}" placeholder="Room 206, Ott Field, TBD"></div></div>
+      <div class="field"><label class="f" for="af-task">What to shoot</label><input id="af-task" type="text" name="task" value="${esc(a.task||'')}" placeholder="Students pitching their stock picks"></div>
+      <div class="field"><span class="f" style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">Photographers</span>${photographerPicker(a.photographers)}</div>
+      <div class="field"><label class="f" for="af-notes">Notes for the photographer</label><textarea id="af-notes" name="notes" placeholder="Guest speaker, lighting tips, where to stand">${esc(a.notes||'')}</textarea></div>
+      <div class="row"><div class="field"><label class="f" for="af-drive">Google Drive link</label><input id="af-drive" type="url" name="driveLink" value="${esc(a.driveLink||'')}" placeholder="Leave blank to use the club’s folder"></div>
+      <div class="field" style="display:flex;align-items:flex-end"><label class="check"><input type="checkbox" name="full" ${a.full?'checked':''}> No more photographers needed</label></div></div>
+    </form>`,
+    onOpen:r=>wirePicker(r),
+    actions:[{label:'Cancel'},{label:isNew?'Add shoot':'Save changes',cls:'pri',onClick:async()=>{
+      const fd=new FormData($('#af'));
+      const club=String(fd.get('club')||'').trim(),date=String(fd.get('date')||'');
+      if(!club||!date){toast('Add a club and a date.','err');return false}
+      const ps=fd.getAll('ps');const prev=a.completions||{};const completions={};for(const p of ps)if(prev[p])completions[p]=prev[p];
+      const pc=a.checkins||{};const checkins={};for(const p of ps)if(pc[p])checkins[p]=pc[p];
+      const data={date,start:String(fd.get('start')||''),end:String(fd.get('end')||''),club,location:String(fd.get('location')||'').trim(),task:String(fd.get('task')||'').trim(),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim(),full:fd.get('full')==='on',photographers:ps,completions,checkins,updatedAt:nowISO()};
+      if(isNew){data.createdAt=nowISO();data.createdBy=S.me.id||'';return await W(()=>DB.collection('assignments').add(data),'Shoot added')}
+      const full=Object.assign(clone(a),data);delete full.id;
+      return await W(()=>DB.doc('assignments/'+a.id).set(full),'Changes saved');
+    }}]
+  });
+}
+async function setMapEntry(id,field,pid,val){
+  const a=S.assignments.find(x=>x.id===id);if(!a)return false;
+  const full=clone(a);delete full.id;full[field]=full[field]||{};
+  if(val)full[field][pid]=val;else delete full[field][pid];
+  full.updatedAt=nowISO();
+  return W(()=>DB.doc('assignments/'+id).set(full));
+}
+async function setCompletion(id,pid,done){
+  if(!done){const ok=await setMapEntry(id,'completions',pid,null);if(ok)toast('Credit removed');return ok}
+  const a=S.assignments.find(x=>x.id===id);const prev=a&&(a.completions||{})[pid];
+  if(canManage()){
+    const ok=await setMapEntry(id,'completions',pid,{at:prev?.at||nowISO(),by:prev?.by||S.me.id||'',status:'approved',points:ppc(),approvedAt:nowISO(),approvedBy:S.me.id||''});
+    if(ok)toast(`Credit given. +${ppc()} ${ppc()===1?'point':'points'} for ${displayName(pName(pid))}`,'gold');return ok;
+  }
+  const ok=await setMapEntry(id,'completions',pid,{at:nowISO(),by:S.me.id||'',status:'pending'});
+  if(ok)toast('Marked done. An officer will check it and give you credit.');return ok;
+}
+function shootDrive(a){return (a&&(a.driveLink||clubByName(a.club)?.driveLink))||''}
+function openSubmitSteps(id,pid){
+  const a=S.assignments.find(x=>x.id===id);if(!a)return;
+  const prev=(a.completions||{})[pid]||{};
+  const steps=[['edited','I edited my photos'],['uploaded','I put them in the club’s Drive folder'],['enough','I got good coverage of the whole meeting']];
+  const folder=shootDrive(a);
+  openModal({title:'Mark done · '+a.club,body:`<p class="muted" style="margin-top:0">${esc(fmtShort(a.date))}, ${esc(timeRange(a))}. Finish these before it goes to an officer for credit.</p>
+    ${folder?`<div class="note">${I.folder}<div>Upload to the club’s Drive folder: <a href="${esc(folder)}" target="_blank" rel="noopener">open it</a>.</div></div>`:''}
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${steps.map(([k,l])=>`<label class="check" style="font-weight:600"><input type="checkbox" class="ss" data-k="${k}"> ${esc(l)}</label>`).join('')}</div>
+    <div class="field"><label class="f" for="ss-link">Link to your photos in Drive <span style="color:var(--crimson)">(required)</span></label><input id="ss-link" type="url" value="${esc(prev.link||folder||'')}" placeholder="https://drive.google.com/…"><p class="help">Paste the link to the folder (or your photos) so an officer can check them. This is required.</p></div>
+    <div class="note warn" id="ss-warn" style="margin:0">${I.info}<div>Tick every box and paste your Drive link to send this for credit.</div></div>`,
+    onOpen:r=>{
+      const upd=()=>{const all=$$('.ss',r).every(c=>c.checked),link=$('#ss-link',r).value.trim(),ok=all&&/^https?:\/\//i.test(link);
+        const b=$$('.mf .btn.pri')[0];if(b)b.disabled=!ok;$('#ss-warn',r).style.display=ok?'none':'';};
+      r.addEventListener('input',upd);r.addEventListener('change',upd);setTimeout(upd,0);
+    },
+    actions:[{label:'Cancel'},{label:I.check+' Send for credit',cls:'pri',onClick:async()=>{
+      const link=$('#ss-link').value.trim();
+      if(!$$('.ss').every(c=>c.checked)||!/^https?:\/\//i.test(link)){toast('Tick every step and paste a valid Drive link.','err');return false}
+      const ok=await submitForCredit(id,pid,link);return ok;
+    }}]});
+}
+async function submitForCredit(id,pid,link){
+  const a=S.assignments.find(x=>x.id===id);if(!a)return false;
+  const prev=(a.completions||{})[pid]||{};
+  const full=clone(a);delete full.id;full.completions=full.completions||{};
+  full.completions[pid]={at:prev.at||nowISO(),by:prev.by||S.me.id||'',status:'pending',link};
+  if(!full.driveLink&&!clubByName(full.club)?.driveLink)full.driveLink=link;
+  full.updatedAt=nowISO();
+  const ok=await W(()=>DB.doc('assignments/'+id).set(full));
+  if(ok)toast('Sent to officers for credit. You’ll get your point once it’s approved.','gold');
+  return ok;
+}
+async function approveCredit(id,pid,quiet){
+  const a=S.assignments.find(x=>x.id===id);const c=a&&(a.completions||{})[pid];if(!c)return false;
+  const ok=await setMapEntry(id,'completions',pid,Object.assign({},c,{status:'approved',points:ppc(),approvedAt:nowISO(),approvedBy:S.me.id||''}));
+  if(ok&&!quiet)toast(`Credit given. +${ppc()} ${ppc()===1?'point':'points'} for ${displayName(pName(pid))}`,'gold');return ok;
+}
+async function approveAll(){
+  const list=pendingCredits();if(!list.length)return;
+  if(!await confirmBox('Give credit to everyone?',`Give credit for all ${plural(list.length,'shoot')} waiting? Only do this if you’ve checked the photos are in the Drive folders.`,'Give credit to all','pri'))return;
+  let n=0;for(const x of list){if(await approveCredit(x.a.id,x.pid,true))n++}
+  if(n)toast(`Gave credit for ${plural(n,'shoot')}`,'gold');
+}
+function openSendBack(id,pid){
+  const a=S.assignments.find(x=>x.id===id);if(!a)return;
+  const reasons=['Photos aren’t in the Drive folder yet','Need more photos','Photos need editing','Wrong club or date'];
+  openModal({title:'Send back to '+firstName(pName(pid)),body:`<p class="muted" style="margin-top:0">${esc(a.club)}, ${esc(fmtShort(a.date))}. They’ll see your note and can mark it done again once it’s fixed.</p>
+    <div class="chips" id="sb-r" style="margin-bottom:10px">${reasons.map(r=>`<button type="button" class="chip tog" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div>
+    <div class="field"><label class="f" for="sb-n">Note for the photographer</label><textarea id="sb-n" style="min-height:80px" placeholder="What needs fixing?"></textarea></div>`,
+    onOpen:r=>{$('#sb-r',r).addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;$('#sb-n').value=b.dataset.r;$$('#sb-r .chip').forEach(c=>c.classList.toggle('on',c===b))})},
+    actions:[{label:'Cancel'},{label:'Send back',cls:'pri',onClick:async()=>{
+      const note=$('#sb-n').value.trim();if(!note){toast('Add a short note so they know what to fix.','err');return false}
+      const c=(a.completions||{})[pid]||{};
+      const ok=await setMapEntry(id,'completions',pid,{at:c.at||nowISO(),by:c.by||'',status:'returned',note,link:c.link||'',returnedAt:nowISO(),returnedBy:S.me.id||''});
+      if(ok)toast('Sent back with your note');return ok;
+    }}]});
+}
+async function copyWeekForward(){
+  const wk=weekAssignments();if(!wk.length){toast('There are no shoots this week to copy.','err');return}
+  const next=addDays(S.week,7);
+  if(!await confirmBox('Copy to next week',`Copy all ${plural(wk.length,'shoot')} to the week of <b>${esc(fmtLong(next))}</b>? Clubs, times, places and tasks carry over. Photographers and completions start empty.`,'Copy '+plural(wk.length,'shoot'),'pri'))return;
+  let n=0;
+  for(const a of wk){const d=parseISO(a.date);const data={date:iso(addDays(d,7)),start:a.start||'',end:a.end||'',club:a.club,location:a.location||'',task:a.task||'',notes:'',driveLink:a.driveLink||'',full:false,photographers:[],completions:{},checkins:{},createdAt:nowISO(),createdBy:S.me.id||''};
+    if(await W(()=>DB.collection('assignments').add(data)))n++}
+  S.week=next;toast(`Copied ${plural(n,'shoot')} to next week`);render();
+}
+
+/* ---------- Check-in & QR ---------- */
+function openQRForAssignment(a){
+  const url=checkinUrl(a.id);
+  openModal({title:'Check-in QR code',cls:'printable',body:`<div class="qrbox" style="border:0"><div class="qrw" style="width:280px">${qrSVG(url)}</div><b>${esc(a.club)}</b><span>${esc(fmtShort(a.date))}, ${esc(timeRange(a))}${a.location?', '+esc(a.location):''}</span></div>
+    <p class="help no-print" style="text-align:center">Photographers scan this at the meeting to check in. Show it on your phone or print it and tape it up.</p>
+    ${shareUrl()?'':'<div class="note warn no-print">'+I.info+'<div>Add the tracker’s link in Settings first, or this QR code won’t open the right page.</div></div>'}`,
+    actions:[{label:'Copy link',onClick:()=>{copyText(url,'Check-in link copied');return false}},...(canPrint()?[{label:'Print',cls:'ink',onClick:()=>{window.print();return false}}]:[]),{label:'Done',cls:'pri'}]});
+}
+function openWeekQR(){
+  const wk=weekAssignments();if(!wk.length){toast('No shoots this week.','err');return}
+  openModal({title:'Check-in QR codes',wide:true,cls:'printable',body:`<p class="muted no-print" style="margin-top:0">One code per shoot for the week of ${esc(fmtLong(S.week))}. ${canPrint()?'Print this page and cut them out.':'Take a screenshot, or open a shoot’s QR to show it full size.'}</p>
+    <div class="qrgrid">${wk.map(a=>`<div class="qrbox"><div class="qrw" style="width:160px">${qrSVG(checkinUrl(a.id))}</div><b>${esc(a.club)}</b><span>${esc(fmtShort(a.date))}, ${esc(fmtTime(a.start))}</span></div>`).join('')}</div>`,
+    actions:[...(canPrint()?[{label:'Print',cls:'ink',onClick:()=>{window.print();return false}}]:[]),{label:'Done',cls:'pri'}]});
+}
+function openCheckin(id){
+  const a=S.assignments.find(x=>x.id===id);
+  if(!a){openModal({title:'Shoot not found',body:'<p style="margin:0">This check-in code is for a shoot that was deleted. Ask an officer for the right code.</p>',actions:[{label:'OK',cls:'ink'}]});return}
+  const mp=myPid(),ps=a.photographers||[];
+  const head=`<div style="margin-bottom:16px"><div class="num" style="font-size:34px;line-height:1">${esc(a.club)}</div><div class="muted">${esc(fmtDay(a.date))}, ${esc(timeRange(a))}${a.location?', '+esc(a.location):''}</div>${a.task?`<p style="margin:10px 0 0">${esc(a.task)}</p>`:''}</div>`;
+  if(!mp){
+    openModal({title:'Check in',body:head+`<div class="note warn">${I.info}<div>Link your name first so we know who’s checking in.</div></div><div class="field"><label class="f" for="ck-p">Which photographer are you?</label><select id="ck-p"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>`,
+      actions:[{label:'Cancel'},{label:'Link and check in',cls:'pri',onClick:async()=>{const pid=$('#ck-p').value;if(!pid){toast('Choose your name.','err');return false}const ok=await linkMe(pid);if(ok===false)return false;setTimeout(()=>openCheckin(id),300);}}]});return;
+  }
+  if(!ps.includes(mp)){
+    openModal({title:'You’re not on this shoot',body:head+`<p style="margin:0">Ask to join and an officer will add you. Once you’re approved you can check in.</p>`,actions:[{label:'Not now'},{label:'Ask to join this shoot',cls:'pri',onClick:()=>submitRequest({photographerId:mp,club:a.club,date:a.date,assignmentId:a.id,note:'Requested from check-in QR'})}]});return;
+  }
+  const ck=(a.checkins||{})[mp],done=(a.completions||{})[mp];
+  openModal({title:ck?'You’re checked in':'Check in',body:head+(ck?`<div class="note good">${I.check}<div>Checked in at <b>${esc(clock(ck.at))}</b>. When your photos are edited and in the Drive folder, mark this shoot done.</div></div>`:`<p style="margin:0">Tap check in when you arrive.</p>`),
+    actions:ck?[{label:'Close'},...(done?[]:[{label:'Mark done',cls:'pri',onClick:()=>setCompletion(a.id,mp,true)}])]:[{label:'Cancel'},{label:'Check in now',cls:'pri',onClick:async()=>{const ok=await setMapEntry(a.id,'checkins',mp,{at:nowISO(),by:S.me.id||''});if(ok)toast('Checked in. Have a good shoot!','gold');return ok}}]});
+}
+
+/* ---------- View: Points & roster ---------- */
+function leaderboardHTML(list,pm){
+  const max=Math.max(1,...list.map(p=>pm[p.id].total));
+  return`<ol class="lb">${list.map((p,i)=>`<li><span class="rk">${i+1}</span><span class="nm">${esc(displayName(p.name))}</span><span class="pt">${pm[p.id].total}</span><span class="bar"><i style="width:${Math.max(0,pm[p.id].total)/max*100}%"></i></span></li>`).join('')}</ol>`;
+}
+function vPoints(){
+  const man=canManage(),pm=pointsMap(),mp=myPid(),q=norm(S.f.phQ);
+  const ranked=S.photographers.filter(p=>pm[p.id].total>0).sort((a,b)=>pm[b.id].total-pm[a.id].total||a.name.localeCompare(b.name));
+  const list=sortByName(S.photographers).filter(p=>(!S.f.noEmail||!p.email)&&(!q||norm(p.name+' '+displayName(p.name)).includes(q)||(man&&norm(p.email).includes(q))));
+  const withEmail=S.photographers.filter(p=>p.email).length;
+  const feed=[...S.awards].sort((a,b)=>(b.at||'').localeCompare(a.at||'')).slice(0,8);
+  const rows=list.map(p=>{const x=pm[p.id];return`<tr>
+    <td data-l="Name"><div class="pl">${avatarHTML(p.name)}<div class="grow"><div class="nm">${esc(p.name)}${p.id===mp?' (you)':''}</div>${man?`<div class="sub">${p.email?esc(p.email):'<span style="color:var(--crimson)">No email yet</span>'}</div>`:''}</div></div></td>
+    <td data-l="Shoots done" class="num" style="font-size:20px">${x.shoots.length}</td>
+    <td data-l="Points" class="num" style="font-size:22px;color:var(--gold)">${x.total}</td>
+    <td class="act"><button class="btn sm" data-act="phHist" data-id="${p.id}">History</button>${man?` <button class="btn sm gold" data-act="award" data-id="${p.id}">${I.medal} Award</button><button class="ibtn" aria-label="Edit ${esc(p.name)}" data-act="phEdit" data-id="${p.id}">${I.pen}</button><button class="ibtn" aria-label="Remove ${esc(p.name)}" data-act="phDel" data-id="${p.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
+  return`
+  <div class="ph"><div class="t"><h1>Points & roster</h1><p class="lede">Photographers earn ${plural(ppc(),'point')} for every shoot they mark done. Officers can also award points by hand for extra work.</p></div>
+  ${man?`<button class="btn" data-act="phBulk">${I.list} Add names and emails</button><button class="btn" data-act="phNew">${I.plus} Add one person</button><button class="btn pri" data-act="award">${I.medal} Award points</button>`:''}</div>
+  <div class="grid-side">
+    ${man&&S.photographers.length?`<div class="note ${withEmail<S.photographers.length?'warn':'good'}">${I.mail}<div style="flex:1"><b>${withEmail} of ${S.photographers.length} have an email,</b> so they get team emails. ${withEmail<S.photographers.length?`<a href="#" data-act="noEmail">${S.f.noEmail?'Show everyone':'Show who’s missing one'}</a> or <a href="#" data-act="phBulk">paste a list of emails</a>.`:''}</div><button class="btn sm" data-act="copyEmails">${I.copy} Copy all emails</button></div>`:''}
+    <section class="sheet"><div class="sheet-cap"><b>Roster</b><span class="muted small">${plural(S.photographers.length,'photographer')}</span><div class="search" style="min-width:220px">${I.search}<input id="pq" type="search" placeholder="${man?'Search names or emails':'Search names'}" value="${esc(S.f.phQ)}" data-in="phQ" aria-label="Search roster"></div></div>
+      ${list.length?`<table class="stack"><thead><tr><th>Name</th><th>Shoots done</th><th>Points</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>${S.photographers.length?'Nobody matches that search':'No photographers yet'}</strong>${man&&!S.photographers.length?`Paste your members list with emails to add everyone at once.<br><button class="btn pri" data-act="phBulk">Add names and emails</button>`:''}</div>`}</section>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <section class="panel tight"><div class="panel-h"><h2>Leaderboard</h2><span class="muted small">${esc(S.settings.schoolYear||'2026–27')}</span></div>${ranked.length?leaderboardHTML(ranked.slice(0,15),pm):'<div class="empty"><strong>No points yet</strong>The first shoot marked done will put someone on the board.</div>'}</section>
+      <section class="panel tight"><div class="panel-h"><h2>Recent awards</h2></div>${feed.length?`<ul class="feed">${feed.map(w=>`<li><span class="amt ${w.points<0?'neg':''}">${w.points>0?'+':''}${esc(w.points)}</span><div class="tx"><b>${esc(displayName(pName(w.photographerId)))}</b><span class="muted">${esc(w.reason||'No reason given')}, ${esc(ago(w.at))}</span></div>${man?`<button class="ibtn" aria-label="Remove award" data-act="delAward" data-id="${w.id}">${I.trash}</button>`:''}</li>`).join('')}</ul>`:`<div class="empty"><strong>No awards yet</strong>${man?'Use Award points for extra events, great edits, or last-minute coverage.':''}</div>`}</section>
+    </div>
+  </div>`;
+}
+function openAward(preIds){
+  let amt=1,sign=1;
+  const reasons=['Extra event','Great edits','Last-minute coverage','Helped train someone','Correction'];
+  openModal({title:'Award points',wide:true,body:`
+    <div class="field"><span class="f" style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">Who gets points?</span>${photographerPicker(preIds||[],'aw')}</div>
+    <div class="row"><div class="field"><span class="f" style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">How many?</span>
+      <div class="chips" id="aw-amts">${[1,2,3,5,10].map(n=>`<button type="button" class="chip tog goldc ${n===1?'on':''}" data-n="${n}">${n}</button>`).join('')}<input type="number" id="aw-custom" min="1" step="1" placeholder="Other" style="width:90px;min-height:34px;padding:5px 10px" aria-label="Other amount"></div></div>
+      <div class="field"><span class="f" style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">Add or take away</span><div class="seg" id="aw-sign"><button type="button" class="on" data-s="1">Add points</button><button type="button" data-s="-1">Take away</button></div></div></div>
+    <div class="field"><label class="f" for="aw-r">Reason</label><div class="chips" style="margin-bottom:8px" id="aw-reasons">${reasons.map(r=>`<button type="button" class="chip tog" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div><input id="aw-r" type="text" placeholder="e.g. Covered Open House on Saturday"></div>
+    <div class="note good" id="aw-sum" style="margin:0">${I.medal}<div></div></div>`,
+    onOpen:r=>{
+      wirePicker(r,'Pick one or more photographers.');
+      let ids=preIds||[];
+      const sum=()=>{const n=ids.length;$('#aw-sum div').innerHTML=n?`<b>${n===1?esc(displayName(pName(ids[0]))):n+' photographers'}</b> ${sign>0?'get':'lose'} <b>${amt} ${amt===1?'point':'points'}</b>${n>1?' each':''}.`:'Pick who gets points.';const b=$$('.mf .btn.pri')[0];if(b)b.textContent=sign>0?`Award ${amt} ${amt===1?'point':'points'}`:`Take away ${amt} ${amt===1?'point':'points'}`;};
+      $('[data-picker]',r).addEventListener('picked',e=>{ids=e.detail;sum()});
+      $('#aw-amts').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(!b)return;amt=+b.dataset.n;$('#aw-custom').value='';$$('#aw-amts .chip').forEach(c=>c.classList.toggle('on',c===b));sum()});
+      $('#aw-custom').addEventListener('input',e=>{const v=Math.round(Math.abs(+e.target.value));if(v>0){amt=v;$$('#aw-amts .chip').forEach(c=>c.classList.remove('on'));sum()}});
+      $('#aw-sign').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;sign=+b.dataset.s;$$('#aw-sign button').forEach(c=>c.classList.toggle('on',c===b));$('#aw-sum').className='note '+(sign>0?'good':'red');sum()});
+      $('#aw-reasons').addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;$('#aw-r').value=b.dataset.r;$$('#aw-reasons .chip').forEach(c=>c.classList.toggle('on',c===b))});
+      setTimeout(sum,0);
+      r._get=()=>({ids,amt,sign});
+    },
+    actions:[{label:'Cancel'},{label:'Award 1 point',cls:'pri',onClick:async()=>{
+      const{ids,amt,sign}=$('#modal-root')._get?$('#modal-root')._get():{};
+      const st=$('#modal-root');const got=st&&st._get?st._get():null;
+      const g=got||{ids:$$('[data-picker] input:checked').map(i=>i.value),amt:1,sign:1};
+      if(!g.ids.length){toast('Pick at least one photographer.','err');return false}
+      const reason=$('#aw-r').value.trim();let n=0;
+      for(const pid of g.ids){if(await W(()=>DB.collection('awards').add({photographerId:pid,points:g.sign*g.amt,reason,at:nowISO(),by:S.me.id||''})))n++}
+      if(n)toast(`${g.sign>0?'Awarded':'Took away'} ${g.amt} ${g.amt===1?'point':'points'} ${g.sign>0?'to':'from'} ${n===1?displayName(pName(g.ids[0])):n+' photographers'}`,'gold');
+    }}]});
+  const root=$('#modal-root');const inner=$('.mb',root);
+  // expose getter on modal root so the action can read current choices
+  root._get=()=>{const ids=$$('[data-picker] input:checked',root).map(i=>i.value);const on=$('#aw-amts .chip.on',root);const custom=Math.round(Math.abs(+($('#aw-custom',root)?.value||0)));const amt=custom>0&&!on?custom:(on?+on.dataset.n:1);const sign=+($('#aw-sign .on',root)?.dataset.s||1);return{ids,amt,sign}};
+}
+function openPhotographerForm(p){
+  const isNew=!p;p=p||{};
+  openModal({title:isNew?'Add a photographer':'Edit photographer',body:`<form id="pf" onsubmit="return false">
+    <div class="field"><label class="f" for="pf-n">Name, last name first</label><input id="pf-n" type="text" name="name" value="${esc(p.name||'')}" placeholder="Flatley, Connor" required></div>
+    <div class="field"><label class="f" for="pf-e">Email</label><input id="pf-e" type="email" name="email" value="${esc(p.email||'')}" placeholder="name@chaminade-hs.org"><p class="help">Adding an email puts them on the team email list. If they sign in with it, their account links automatically.</p></div>
+    <div class="field"><label class="f" for="pf-g">Grade</label><select id="pf-g" name="grade">${['','9','10','11','12','Faculty'].map(g=>`<option ${String(p.grade||'')===g?'selected':''} value="${g}">${g?g==='Faculty'?'Faculty':'Grade '+g:'Not set'}</option>`).join('')}</select></div></form>`,
+    actions:[{label:'Cancel'},{label:isNew?'Add to roster':'Save changes',cls:'pri',onClick:async()=>{
+      const fd=new FormData($('#pf'));const name=String(fd.get('name')||'').trim(),email=String(fd.get('email')||'').trim().toLowerCase();
+      if(!name){toast('Add a name.','err');return false}
+      if(email&&!isEmail(email)){toast('That email doesn’t look right.','err');return false}
+      if(isNew&&S.photographers.some(x=>norm(x.name)===norm(name))){toast('That name is already on the roster.','err');return false}
+      const data={name,email,grade:String(fd.get('grade')||'')};
+      return isNew?await W(()=>DB.collection('photographers').add(Object.assign(data,{bonus:0,addedAt:nowISO()})),'Added to roster'):await W(()=>DB.doc('photographers/'+p.id).update(data),'Changes saved');
+    }}]});
+}
+function openBulkAdd(){
+  openModal({title:'Add names and emails',body:`<p class="muted" style="margin-top:0">Paste one person per line, last name first, with their email after a comma. People already on the roster get their email filled in. New names are added. Everyone with an email is on the email list.</p><textarea id="bulk" style="min-height:240px" placeholder="Flatley, Connor, 30145cf@chaminade-hs.org&#10;Leopard, Andrew, 30270al@chaminade-hs.org&#10;Mitchell, Antonio"></textarea><p class="help" id="bulkinfo">Tip: copy two columns (name and email) straight from a spreadsheet.</p>`,
+    onOpen:r=>{const t=$('#bulk',r);t.addEventListener('input',()=>{const n=parseBulk(t.value);$('#bulkinfo').textContent=[n.add.length?plural(n.add.length,'new person','new people')+' to add':'',n.upd.length?plural(n.upd.length,'email')+' to fill in or change':'',n.skip?n.skip+' lines with nothing new':''].filter(Boolean).join('. ')||'Nothing to change yet.'})},
+    actions:[{label:'Cancel'},{label:'Save to roster',cls:'pri',onClick:async()=>{
+      const{add,upd}=parseBulk($('#bulk').value);if(!add.length&&!upd.length){toast('Nothing new to save.','err');return false}
+      let a=0,u=0;
+      for(const p of upd){if(await W(()=>DB.doc('photographers/'+p.id).update({email:p.email})))u++}
+      for(const p of add){if(await W(()=>DB.collection('photographers').add({name:p.name,email:p.email,grade:'',bonus:0,addedAt:nowISO()})))a++}
+      toast([a?`Added ${plural(a,'person','people')}`:'',u?`saved ${plural(u,'email')}`:''].filter(Boolean).join(', ').replace(/^s/,'S'));
+    }}]});
+}
+function findByName(name){const n=norm(name),d=norm(displayName(name));return S.photographers.find(p=>norm(p.name)===n||norm(displayName(p.name))===n||norm(p.name)===d)}
+function parseBulk(txt){
+  const add=[],upd=[];let skip=0;const seen=new Set();
+  for(let line of String(txt).split(/\r?\n/)){
+    line=line.trim();if(!line||norm(line)==='n/a'){if(line)skip++;continue}
+    let email='';const m=line.match(/[^\s,;<>]+@[^\s,;<>]+\.[a-z]{2,}/i);if(m){email=m[0].toLowerCase();line=line.replace(m[0],'')}
+    const name=line.split(/\t/).filter(x=>x.trim())[0]?.replace(/[,;\s]+$/,'').trim()||'';
+    if(!name&&email){const p=S.photographers.find(x=>norm(x.email)===email);if(p){skip++;continue}}
+    if(!name){skip++;continue}
+    if(seen.has(norm(name))){skip++;continue}seen.add(norm(name));
+    const ex=findByName(name);
+    if(ex){if(email&&norm(ex.email)!==email)upd.push({id:ex.id,email});else skip++;continue}
+    add.push({name,email});
+  }
+  return{add,upd,skip};
+}
+function openHistory(p){
+  const x=pointsMap()[p.id];const sh=[...x.shoots].sort((a,b)=>b.date.localeCompare(a.date));const man=canManage();
+  const openA=S.assignments.filter(a=>(a.photographers||[]).includes(p.id)&&!(a.completions||{})[p.id]).sort(sortA);
+  const aw=[...x.awards].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  openModal({title:displayName(p.name),wide:true,body:`<div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:18px"><div><div class="num" style="font-size:54px;line-height:1;color:var(--gold)">${x.total}</div><div class="muted small">total points</div></div><div><div class="num" style="font-size:54px;line-height:1">${sh.length}</div><div class="muted small">shoots done</div></div><div><div class="num" style="font-size:54px;line-height:1">${openA.length}</div><div class="muted small">still open</div></div></div>
+  <h3>Credited shoots</h3>${sh.length?`<table><tbody>${sh.map(a=>`<tr><td class="nowrap">${esc(fmtShort(a.date))}</td><td class="b">${esc(a.club)}</td><td class="num" style="color:var(--gold);font-size:18px">+${esc(a.completions[p.id].points??1)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">None yet.</p>'}
+  <h3 style="margin-top:18px">Awarded by officers</h3>${aw.length||x.bonus?`<table><tbody>${aw.map(w=>`<tr><td class="nowrap">${esc(new Date(w.at).toLocaleDateString())}</td><td>${esc(w.reason||'No reason given')}</td><td class="num" style="color:${w.points<0?'var(--crimson)':'var(--gold)'};font-size:18px">${w.points>0?'+':''}${esc(w.points)}</td>${man?`<td class="act"><button class="ibtn" aria-label="Remove award" data-act="delAward" data-id="${w.id}">${I.trash}</button></td>`:''}</tr>`).join('')}${x.bonus?`<tr><td></td><td>Earlier adjustment${p.bonusNote?': '+esc(p.bonusNote):''}</td><td class="num" style="font-size:18px">${x.bonus>0?'+':''}${x.bonus}</td></tr>`:''}</tbody></table>`:'<p class="muted">None yet.</p>'}
+  <h3 style="margin-top:18px">Still open</h3>${openA.length?`<table><tbody>${openA.map(a=>`<tr><td class="nowrap">${esc(fmtShort(a.date))}</td><td class="b">${esc(a.club)}</td><td class="muted">${esc(timeRange(a))}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nothing open.</p>'}`,
+  actions:[...(man?[{label:I.medal+' Award points',cls:'gold',onClick:()=>{setTimeout(()=>openAward([p.id]),0)}}]:[]),{label:'Close',cls:'ink'}]});
+}
+
+/* ---------- View: Requests ---------- */
+function vRequests(){
+  const man=canManage(),mp=myPid(),tab=S.f.reqTab;
+  const reqs=S.requests.filter(r=>tab==='all'||r.status===tab).filter(r=>man||r.photographerId===mp).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  const cnt=k=>S.requests.filter(r=>r.status===k&&(man||r.photographerId===mp)).length;
+  return`
+  <div class="ph"><div class="t"><h1>Request a club</h1><p class="lede">${man?'Photographers ask to shoot club meetings here. Approve a request and they’re added to that shoot automatically.':'Want to photograph a club meeting? Ask here. When an officer approves it, you’re added to that shoot automatically.'}</p></div></div>
+  <div class="grid2" style="grid-template-columns:minmax(0,420px) minmax(0,1fr)">
+    <section class="panel"><h2>New request</h2>
+      <form id="rqf" onsubmit="return false" style="margin-top:14px">
+        <div class="field"><label class="f" for="rq-p">Your name</label><select id="rq-p" name="pid" required><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(p.name)}</option>`).join('')}</select><p class="help">Not listed? Ask an officer to add you to the roster.</p></div>
+        <div class="field"><label class="f" for="rq-c">Club</label><input id="rq-c" type="text" name="club" list="clubs-dl" required placeholder="Start typing a club">${clubDatalist()}</div>
+        <div class="field"><label class="f" for="rq-d">Meeting date</label><input id="rq-d" type="date" name="date" required></div>
+        <div class="field"><label class="f" for="rq-n">Anything officers should know?</label><input id="rq-n" type="text" name="note" placeholder="Optional"></div>
+        <button class="btn pri block lg" data-act="reqSubmit">${I.hand} Send request</button>
+      </form></section>
+    <section class="sheet"><div class="tabs" style="padding:0 10px;margin:0">${[['pending','Waiting'],['approved','Approved'],['declined','Declined'],['all','All']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="reqTab" data-v="${k}">${l}${k!=='all'?` (${cnt(k)})`:''}</button>`).join('')}</div>
+      ${reqs.length?`<table class="stack"><thead><tr><th>Photographer</th><th>Club</th><th>Meeting</th><th>Sent</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${reqs.map(r=>`<tr>
+        <td data-l="Photographer" class="b">${esc(displayName(pName(r.photographerId)))}</td><td data-l="Club">${esc(r.club)}${r.note?`<div class="muted small">${esc(r.note)}</div>`:''}</td>
+        <td data-l="Meeting" class="nowrap">${esc(fmtShort(r.date))}</td><td data-l="Sent" class="muted nowrap">${esc(ago(r.at))}</td>
+        <td data-l="Status"><span class="st ${r.status==='pending'?'progress':r.status==='approved'?'done':'grey'}">${r.status==='pending'?'Waiting':r.status==='approved'?'Approved':'Declined'}</span></td>
+        <td class="act">${man&&r.status==='pending'?`<button class="btn sm pri" data-act="reqOk" data-id="${r.id}">${I.check} Approve</button> <button class="btn sm" data-act="reqNo" data-id="${r.id}">Decline</button>`:''}${man?`<button class="ibtn" aria-label="Delete request" data-act="reqDel" data-id="${r.id}">${I.trash}</button>`:''}</td></tr>`).join('')}</tbody></table>`:`<div class="empty"><strong>${tab==='pending'?'No requests waiting':'Nothing here yet'}</strong>${tab==='pending'?'New requests show up here as soon as they’re sent.':''}</div>`}
+    </section>
+  </div>`;
+}
+async function submitRequest(data){
+  if(!data.photographerId||!data.club||!data.date){toast('Choose your name, a club and a date.','err');return false}
+  const dup=S.requests.find(r=>r.photographerId===data.photographerId&&norm(r.club)===norm(data.club)&&r.date===data.date&&r.status!=='declined');
+  if(dup){toast('You already asked for that one. It’s '+(dup.status==='pending'?'waiting for approval.':'approved.'),'err');return false}
+  return await W(()=>DB.collection('requests').add(Object.assign({status:'pending',at:nowISO(),by:S.me.id||'',note:'',assignmentId:''},data)),'Request sent. An officer will approve it.');
+}
+async function approveRequest(r){
+  let a=r.assignmentId&&S.assignments.find(x=>x.id===r.assignmentId);
+  if(!a)a=S.assignments.find(x=>norm(x.club)===norm(r.club)&&x.date===r.date);
+  let ok;
+  if(a){const full=clone(a);delete full.id;full.photographers=Array.from(new Set([...(full.photographers||[]),r.photographerId]));full.updatedAt=nowISO();ok=await W(()=>DB.doc('assignments/'+a.id).set(full))}
+  else{const c=clubByName(r.club);ok=await W(()=>DB.collection('assignments').add({date:r.date,start:'',end:'',club:c?c.name:r.club,location:'',task:'',notes:r.note||'',driveLink:'',full:false,photographers:[r.photographerId],completions:{},checkins:{},createdAt:nowISO(),createdBy:S.me.id||''}))}
+  if(ok)await W(()=>DB.doc('requests/'+r.id).update({status:'approved',decidedAt:nowISO(),decidedBy:S.me.id||''}),`Approved. ${displayName(pName(r.photographerId))} is on ${a?'the shoot':'a new shoot'}.`);
+}
+
+/* ---------- View: Clubs ---------- */
+const COVER={'Enough Photos':['Fully covered','done'],'Has Photos':['Has some photos','gold'],'No photos':['No photos yet','open']};
+function clubStats(){
+  const m={};const t=todayISO();
+  for(const a of S.assignments){const c=norm(a.club);if(!c)continue;m[c]=m[c]||{shoots:0,last:null,upcoming:0};
+    if(Object.keys(a.completions||{}).length){m[c].shoots++;if(!m[c].last||a.date>m[c].last)m[c].last=a.date}
+    if(a.date>=t)m[c].upcoming++}
+  return m;
+}
+function vClubs(){
+  const man=canManage(),cs=clubStats(),q=norm(S.f.clubQ);
+  const tot=S.clubs.length,full=S.clubs.filter(c=>c.status==='Enough Photos').length,has=S.clubs.filter(c=>c.status==='Has Photos').length,none=tot-full-has;
+  const order={'No photos':0,'Has Photos':1,'Enough Photos':2};
+  const list=S.clubs.filter(c=>(S.f.clubFilter==='all'||(COVER[c.status||'No photos']||COVER['No photos'])[1]===S.f.clubFilter)&&(!q||norm(c.name).includes(q)||norm(c.notes).includes(q)))
+    .sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
+  const today=new Date();
+  const rows=list.map(c=>{const st=c.status||'No photos',[cov,cls]=COVER[st]||COVER['No photos'],s=cs[norm(c.name)]||{shoots:0,last:null,upcoming:0};
+    const days=s.last?Math.floor((today-parseISO(s.last))/864e5):null;
+    return`<tr><td class="b" data-l="Club">${esc(c.name)}${c.notes?`<div class="muted small" style="font-weight:400">${esc(c.notes)}</div>`:''}</td>
+      <td data-l="Coverage">${man?`<select data-act="clubStatus" data-id="${c.id}" aria-label="Coverage for ${esc(c.name)}" style="width:auto;min-height:34px;padding:4px 8px">${['No photos','Has Photos','Enough Photos'].map(o=>`<option value="${o}" ${o===st?'selected':''}>${COVER[o][0]}</option>`).join('')}</select>`:`<span class="st ${cls}">${cov}</span>`}</td>
+      <td data-l="Shoots done" class="num" style="font-size:19px">${s.shoots}${s.upcoming?` <span class="muted small" style="font-family:var(--body);font-weight:400">${s.upcoming} coming up</span>`:''}</td>
+      <td data-l="Last photographed">${s.last?`${esc(fmtShort(s.last))}<div class="muted small">${days<=0?'today':plural(days,'day')+' ago'}</div>`:'<span class="muted">Never on the tracker</span>'}</td>
+      <td data-l="Drive">${c.driveLink?`<a href="${esc(c.driveLink)}" target="_blank" rel="noopener">Folder</a>`:'<span class="muted">None</span>'}</td>
+      <td class="act">${man?`<button class="ibtn" aria-label="Edit ${esc(c.name)}" data-act="editClub" data-id="${c.id}">${I.pen}</button><button class="ibtn" aria-label="Delete ${esc(c.name)}" data-act="delClub" data-id="${c.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
+  return`
+  <div class="ph"><div class="t"><h1>Club coverage</h1><p class="lede">Every club from A to Z. Use the filters to see which ones still need photos. Shoot counts and dates update when photographers mark shoots done.</p></div>${man?`<button class="btn pri" data-act="newClub">${I.plus} Add a club</button>`:''}</div>
+  <div class="progress"><div class="big">${tot?Math.round(full/tot*100):0}<span>%</span></div><div class="segbar">${[['done',full],['gold',has],['open',none]].map(([k,n])=>n?`<i style="width:${n/tot*100}%;background:${k==='gold'?'var(--gold-bright)':'var(--c-'+k+')'}"></i>`:'').join('')}</div>
+    <div class="legend"><span><i style="background:var(--c-done)"></i>${full} fully covered</span><span><i style="background:var(--gold-bright)"></i>${has} have some photos</span><span><i style="background:var(--c-open)"></i>${none} have none</span><span class="muted">${plural(tot,'club')}</span></div></div>
+  <div class="toolbar"><div class="seg">${[['all','All'],['open','No photos'],['gold','Some photos'],['done','Fully covered']].map(([k,l])=>`<button class="${S.f.clubFilter===k?'on':''}" data-act="cfilter" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="search">${I.search}<input id="cq" type="search" placeholder="Search clubs" value="${esc(S.f.clubQ)}" data-in="clubQ" aria-label="Search clubs"></div></div>
+  <section class="sheet">${list.length?`<table class="stack"><thead><tr><th>Club</th><th>Coverage</th><th>Shoots done</th><th>Last photographed</th><th>Drive</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>${tot?'No clubs match':'No clubs yet'}</strong></div>`}</section>`;
+}
+function openClubForm(c){
+  const isNew=!c;c=c||{status:'No photos'};
+  openModal({title:isNew?'Add a club':'Edit club',body:`<form id="cf" onsubmit="return false">
+    <div class="field"><label class="f" for="cf-n">Club name</label><input id="cf-n" type="text" name="name" value="${esc(c.name||'')}" required></div>
+    <div class="field"><label class="f" for="cf-s">Coverage</label><select id="cf-s" name="status">${['No photos','Has Photos','Enough Photos'].map(o=>`<option value="${o}" ${o===c.status?'selected':''}>${COVER[o][0]}</option>`).join('')}</select></div>
+    <div class="field"><label class="f" for="cf-no">Notes</label><input id="cf-no" type="text" name="notes" value="${esc(c.notes||'')}" placeholder="Only cover important events"></div>
+    <div class="field"><label class="f" for="cf-d">Google Drive folder</label><input id="cf-d" type="url" name="driveLink" value="${esc(c.driveLink||'')}"></div></form>`,
+    actions:[{label:'Cancel'},{label:isNew?'Add club':'Save changes',cls:'pri',onClick:async()=>{
+      const fd=new FormData($('#cf'));const name=String(fd.get('name')||'').trim();if(!name){toast('Add a club name.','err');return false}
+      if(isNew&&clubByName(name)){toast('That club is already listed.','err');return false}
+      const data={name,status:fd.get('status'),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim()};
+      return isNew?await W(()=>DB.collection('clubs').add(data),'Club added'):await W(()=>DB.doc('clubs/'+c.id).update(data),'Changes saved');
+    }}]});
+}
+
+/* ---------- Email ---------- */
+const canRelay=()=>MODE==='firebase'&&!!CFG.mailRelayUrl&&canManage();
+async function relaySend({to=[],bcc=[],subject,body}){
+  const u=FB&&FB.auth.currentUser;if(!u)throw new Error('Sign in again to send email.');
+  const idToken=await u.getIdToken();
+  const r=await fetch(CFG.mailRelayUrl,{method:'POST',body:JSON.stringify({idToken,to,bcc,subject,body,replyTo:S.me.email||''})});
+  let j;try{j=await r.json()}catch(_){throw new Error('The email service didn’t answer. Check the mail relay URL in config.js.')}
+  if(!j.ok)throw new Error(j.error||'The email didn’t send.');
+  return j;
+}
+function audienceOptions(){
+  const wk=weekAssignments();
+  return{
+    roster:{label:'Everyone on the roster',get:()=>pplEmails(S.photographers.map(p=>p.id))},
+    week:{label:'Photographers with shoots this week',get:()=>{const ids=new Set();wk.forEach(a=>(a.photographers||[]).forEach(p=>{if(!(a.completions||{})[p])ids.add(p)}));return pplEmails([...ids])}},
+    assignment:{label:'Photographers on one shoot',get:()=>{const a=S.assignments.find(x=>x.id===S.emailDraft?.assignmentId);if(!a)return[];const left=(a.photographers||[]).filter(p=>!(a.completions||{})[p]);return pplEmails(left.length?left:(a.photographers||[]))}},
+    club:{label:'Photographers who’ve shot one club',get:()=>{const c=norm(S.emailDraft?.club);const ids=new Set();S.assignments.filter(a=>norm(a.club)===c).forEach(a=>(a.photographers||[]).forEach(p=>ids.add(p)));return pplEmails([...ids])}},
+    idle:{label:'Photographers with no shoots yet',get:()=>{const pm=pointsMap();return pplEmails(S.photographers.filter(p=>!pm[p.id].shoots.length&&!S.assignments.some(a=>(a.photographers||[]).includes(p.id))).map(p=>p.id))}},
+    team:{label:'Admins, Managers and Members',get:()=>S.roles.filter(r=>r.email).map(r=>({name:r.role,email:r.email}))},
+    people:{label:'Specific people',get:()=>(S.emailDraft?.people||[]).map(e=>({name:'',email:e}))}
+  };
+}
+function pplEmails(ids){return ids.map(id=>{const p=pById(id);if(!p)return null;const e=p.email||'';return{name:displayName(p.name),email:e,missing:!e}}).filter(Boolean)}
+function recipients(){
+  const d=S.emailDraft;const raw=(audienceOptions()[d.audience]?.get()||[]);
+  const seen=new Set(),out=[],missing=[];
+  for(const r of raw){if(r.missing){missing.push(r.name);continue}const e=norm(r.email);if(!isEmail(e)||seen.has(e))continue;seen.add(e);out.push(r)}
+  return{out,missing};
+}
+function digestBody(){
+  const wk=weekAssignments();const url=shareUrl();
+  let s=`Hi everyone,\n\nHere are this week’s Element club shoots (week of ${fmtLong(S.week)}).\n`;let day=null;
+  for(const a of wk){if(a.date!==day){day=a.date;s+=`\n${fmtDay(a.date)}\n`}
+    const ps=(a.photographers||[]).map(p=>displayName(pName(p))).join(', ');
+    s+=`- ${a.club}, ${timeRange(a)}${a.location?', '+a.location:''}\n  ${a.task?a.task+'\n  ':''}Photographer: ${ps||'OPEN, request it on the tracker'}${a.full?' (full)':''}\n`}
+  if(!wk.length)s+='\nNo shoots are posted yet.\n';
+  s+=`\nWhen your photos are edited and in the Drive folder, mark your shoot done on the tracker to get your point.${url?`\n\nTracker: ${url}`:''}\n\nElement Media`;
+  return s;
+}
+function assignmentBody(a){
+  if(!a)return'';const url=shareUrl();const names=(a.photographers||[]).map(p=>firstName(pName(p))).join(' and ');
+  const drive=a.driveLink||clubByName(a.club)?.driveLink;
+  return`Hi ${names||'there'},\n\nReminder about your Element photo shoot:\n\nClub: ${a.club}\nWhen: ${fmtDay(a.date)}, ${timeRange(a)}\nWhere: ${a.location||'TBD'}\nWhat to shoot: ${a.task||'See the tracker'}${a.notes?`\nNotes: ${a.notes}`:''}\n\nCheck in when you get there, then mark the shoot done once your photos are edited and in the Drive folder${drive?` (${drive})`:''}.${url?`\n\n${url}`:''}\n\nThanks!\nElement Media`;
+}
+function clubBody(club){
+  const url=shareUrl();const up=S.assignments.filter(a=>norm(a.club)===norm(club)&&a.date>=todayISO()).sort(sortA)[0];
+  return`Hi all,\n\n${club||'A club'} ${up?`meets ${fmtDay(up.date)}${up.start?' at '+fmtTime(up.start):''}${up.location?' in '+up.location:''}`:'has a meeting coming up'} and needs a photographer.${up&&up.task?`\n\nWhat we need: ${up.task}`:''}\n\nIf you can take it, request it on the tracker${url?`: ${url}`:''}.\n\nElement Media`;
+}
+const TEMPLATES={
+  digest:{label:'Weekly shoot list',subject:()=>`Element club shoots, week of ${fmtLong(S.week)}`,body:digestBody},
+  assignment:{label:'Shoot reminder',subject:()=>{const a=S.assignments.find(x=>x.id===S.emailDraft.assignmentId);return a?`Reminder: ${a.club} shoot on ${fmtShort(a.date)}`:'Shoot reminder'},body:()=>assignmentBody(S.assignments.find(x=>x.id===S.emailDraft.assignmentId))},
+  club:{label:'Club needs a photographer',subject:()=>`Photographer needed: ${S.emailDraft.club||'club meeting'}`,body:()=>clubBody(S.emailDraft.club||'')},
+  completion:{label:'Mark your shoots done',subject:()=>'Reminder: mark your Element shoots done',body:()=>`Hi everyone,\n\nIf you shot a club this week, edit your photos, put them in the club’s Drive folder, and mark the shoot done on the tracker. That’s how you get your point.${shareUrl()?`\n\n${shareUrl()}`:''}\n\nElement Media`},
+  blank:{label:'Blank message',subject:()=>'',body:()=>''}
+};
+function vEmail(){
+  if(!S.emailDraft)S.emailDraft={audience:'roster',template:'digest',assignmentId:'',club:'',people:[],subject:'',body:'',dirty:false};
+  const d=S.emailDraft;if(!d.dirty){const t=TEMPLATES[d.template];d.subject=t.subject();d.body=t.body()}
+  const A=audienceOptions();const wk=weekAssignments();
+  const all=[...S.photographers.filter(p=>p.email).map(p=>({n:displayName(p.name),e:p.email})),...S.roles.filter(r=>r.email).map(r=>({n:r.role,e:r.email}))];
+  const uniq=[];const seen=new Set();for(const p of all){const e=norm(p.e);if(e&&!seen.has(e)){seen.add(e);uniq.push(p)}}uniq.sort((a,b)=>a.n.localeCompare(b.n));
+  const relay=canRelay();
+  return`
+  <div class="ph"><div class="t"><h1>Send an email</h1><p class="lede">Pick who gets it and a starting message, edit if you want, then send. ${relay?'It goes out from Element’s Gmail with everyone hidden in BCC.':'It opens as a ready-to-send Gmail draft with everyone hidden in BCC.'}</p></div></div>
+  <form id="em-form" onsubmit="return false" class="grid2">
+    <section class="panel">
+      <div class="field"><label class="f" for="em-aud">Send to</label><select id="em-aud">${Object.entries(A).map(([k,v])=>`<option value="${k}" ${d.audience===k?'selected':''}>${esc(v.label)}</option>`).join('')}</select></div>
+      <div class="field ${d.audience==='assignment'||d.template==='assignment'?'':'hidden'}"><label class="f" for="em-a">Which shoot?</label><select id="em-a"><option value="">Choose a shoot…</option>${wk.map(a=>`<option value="${a.id}" ${d.assignmentId===a.id?'selected':''}>${esc(fmtShort(a.date))}: ${esc(a.club)} (${esc((a.photographers||[]).map(p=>displayName(pName(p))).join(', ')||'no photographer')})</option>`).join('')}</select></div>
+      <div class="field ${d.audience==='club'||d.template==='club'?'':'hidden'}"><label class="f" for="em-c">Which club?</label><input type="text" id="em-c" list="clubs-dl" value="${esc(d.club)}" placeholder="Choose a club">${clubDatalist()}</div>
+      <div class="field ${d.audience==='people'?'':'hidden'}"><span class="f" style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">People</span><div class="picker"><div class="sel chips" id="em-psel"></div><input type="search" class="pq" id="em-pq" placeholder="Search, or type an email and press Enter" aria-label="Search people"><div class="opts" id="em-popts">${uniq.map(p=>`<label data-n="${esc(norm(p.n+' '+p.e))}"><input type="checkbox" value="${esc(p.e)}" ${d.people.includes(p.e)?'checked':''}> ${esc(p.n)} <span class="muted">${esc(p.e)}</span></label>`).join('')}</div></div></div>
+      <div class="field"><label class="f" for="em-t">Start from</label><select id="em-t">${Object.entries(TEMPLATES).map(([k,v])=>`<option value="${k}" ${d.template===k?'selected':''}>${esc(v.label)}</option>`).join('')}</select></div>
+      <div class="field"><label class="f" for="em-s">Subject</label><input type="text" id="em-s" value="${esc(d.subject)}"></div>
+      <div class="field"><label class="f" for="em-b">Message</label><textarea id="em-b" style="min-height:280px">${esc(d.body)}</textarea>${d.dirty?'<p class="help"><a href="#" data-act="emReset">Go back to the starting message</a></p>':''}</div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <section class="panel"><h2>Recipients <span class="num" id="em-count" style="color:var(--crimson)"></span></h2><p class="muted small" id="em-audlabel" style="margin:0 0 10px"></p>
+        <div class="recips chips" id="em-recips"></div><div id="em-missing"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+          ${relay?`<button type="button" class="btn pri lg" data-act="emSend">${I.send} Send now</button><a class="btn" id="em-gmail" target="_blank" rel="noopener" href="#">Open in Gmail instead</a>`:`<a class="btn pri lg" id="em-gmail" target="_blank" rel="noopener" href="#">${I.mail} Open in Gmail</a><a class="btn" id="em-mailto" href="#">Use my mail app</a>`}
+          <button class="btn" type="button" data-act="emCopyTo">${I.copy} Copy addresses</button>
+        </div>
+        <p class="help">${relay?'Gmail allows a limited number of emails a day, so big lists may hit the limit.':'Review the draft in Gmail and press Send. For very long lists, copy the addresses and paste them into BCC.'}</p>
+      </section>
+      <section class="panel tight"><div class="panel-h"><h2>Sent recently</h2></div>${S.emails.length?`<ul class="feed">${[...S.emails].sort((a,b)=>(b.at||'').localeCompare(a.at||'')).slice(0,8).map(e=>`<li><span class="amt" style="color:var(--ink);font-size:20px">${esc(e.count)}</span><div class="tx"><b>${esc(e.subject||'No subject')}</b><span class="muted">${esc(e.audience||'')}, ${esc(ago(e.at))}${e.sent?'':', opened as a draft'}</span></div></li>`).join('')}</ul>`:'<div class="empty"><strong>Nothing sent yet</strong>Emails you send show up here.</div>'}</section>
+    </div>
+  </form>`;
+}
+function initEmail(){
+  const d=S.emailDraft;if(!d||!$('#em-form'))return;const sync=()=>refreshEmailRecipients();
+  $('#em-aud').onchange=e=>{d.audience=e.target.value;if(!d.dirty){if(d.audience==='assignment')d.template='assignment';if(d.audience==='club')d.template='club'}rerenderEmail()};
+  $('#em-t').onchange=e=>{d.template=e.target.value;d.dirty=false;rerenderEmail()};
+  $('#em-a').onchange=e=>{d.assignmentId=e.target.value;d.dirty?sync():rerenderEmail()};
+  $('#em-c').oninput=e=>{d.club=e.target.value;sync()};
+  $('#em-c').onchange=()=>{if(!d.dirty)rerenderEmail()};
+  $('#em-s').oninput=e=>{d.subject=e.target.value;d.dirty=true;sync()};
+  $('#em-b').oninput=e=>{d.body=e.target.value;d.dirty=true;sync()};
+  const po=$('#em-popts');
+  if(po){po.onchange=()=>{const boxes=$$('input',po);d.people=boxes.filter(i=>i.checked).map(i=>i.value).concat(d.people.filter(e=>!boxes.some(i=>i.value===e)));sync()};
+    $('#em-pq').oninput=e=>{const q=norm(e.target.value);$$('label',po).forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')};
+    $('#em-pq').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const v=norm(e.target.value);if(isEmail(v)&&!d.people.includes(v)){d.people.push(v);e.target.value='';sync()}}}}
+  sync();
+}
+function rerenderEmail(){$('#main').dataset.view='';doRender()}
+function refreshEmailRecipients(){
+  const d=S.emailDraft;if(!d||!$('#em-recips'))return;
+  const{out,missing}=recipients();
+  $('#em-count').textContent=out.length;$('#em-audlabel').textContent=audienceOptions()[d.audience].label;
+  $('#em-recips').innerHTML=out.length?out.map(r=>`<span class="chip" title="${esc(r.email)}">${esc(r.name||r.email)}${d.audience==='people'?`<button type="button" data-rm="${esc(r.email)}" aria-label="Remove">×</button>`:''}</span>`).join(''):'<span class="muted">Nobody yet.</span>';
+  $$('#em-recips [data-rm]').forEach(b=>b.onclick=()=>{d.people=d.people.filter(e=>e!==b.dataset.rm);const cb=$$('#em-popts input').find(i=>i.value===b.dataset.rm);if(cb)cb.checked=false;refreshEmailRecipients()});
+  const ps=$('#em-psel');if(ps)ps.innerHTML=d.people.length?d.people.map(e=>`<span class="chip on">${esc(e)}</span>`).join(''):'<span class="help" style="margin:0">Nobody picked yet</span>';
+  $('#em-missing').innerHTML=missing.length?`<div class="note warn" style="margin:12px 0 0;padding:9px 12px;font-size:13.5px">${I.info}<div>${missing.length>6?plural(missing.length,'person','people')+' have':'<b>'+esc(missing.join(', '))+'</b> '+(missing.length===1?'has':'have')} no email on the roster, so they won’t get this. <a href="#points">Add emails</a>.</div></div>`:'';
+  const bcc=out.map(r=>r.email).join(',');
+  const g=`https://mail.google.com/mail/?view=cm&fs=1&tf=1${bcc?'&bcc='+encodeURIComponent(bcc):''}&su=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
+  const gm=$('#em-gmail'),mt=$('#em-mailto');
+  if(gm){gm.href=g;gm.onclick=()=>{if(!out.length){toast('Pick at least one recipient.','err');return false}logEmail(out.length,false)}}
+  if(mt){mt.href=`mailto:?bcc=${encodeURIComponent(bcc)}&subject=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;mt.onclick=()=>{if(out.length)logEmail(out.length,false)}}
+}
+let lastLog=0;
+function logEmail(n,sent){if(Date.now()-lastLog<4000&&!sent)return;lastLog=Date.now();const d=S.emailDraft;if(!DB)return;DB.collection('emails').add({subject:d.subject,audience:audienceOptions()[d.audience].label,count:n,sent:!!sent,at:nowISO(),by:S.me.id||''}).catch(()=>{})}
+async function sendNow(btn){
+  const{out}=recipients();const d=S.emailDraft;
+  if(!out.length){toast('Pick at least one recipient.','err');return}
+  if(!d.subject.trim()){toast('Add a subject.','err');return}
+  if(!await confirmBox('Send this email?',`Send “${esc(d.subject)}” to ${plural(out.length,'person','people')} now?`,'Send now','pri'))return;
+  btn.disabled=true;btn.textContent='Sending…';
+  try{const j=await relaySend({bcc:out.map(r=>r.email),subject:d.subject,body:d.body});logEmail(out.length,true);toast(`Sent to ${plural(out.length,'person','people')}. ${j.remaining!=null?j.remaining+' left today.':''}`,'gold')}
+  catch(e){toast(e.message,'err')}
+  btn.disabled=false;btn.innerHTML=I.send+' Send now';
+}
+function startEmail(preset){S.emailDraft=Object.assign({audience:'roster',template:'digest',assignmentId:'',club:'',people:[],subject:'',body:'',dirty:false},preset);location.hash='email';if(S.view==='email')rerenderEmail()}
+
+/* ---------- Team & invites ---------- */
+function inviteLink(c){const u=shareUrl();return(u||'(add the tracker link in Settings)')+'#inv-'+c}
+function inviteState(v){if(v.status==='revoked')return'revoked';if(v.expiresAt&&new Date(v.expiresAt)<new Date())return'expired';if(!v.multi&&v.status==='accepted')return'accepted';return'pending'}
+const INV_LABEL={pending:'Waiting',accepted:'Joined',revoked:'Turned off',expired:'Expired'};
+function vTeam(){
+  const admin=isAdmin(),tab=S.f.teamTab;
+  const roles=S.roles.filter(r=>!r.owner).sort((a,b)=>ROLE_RANK[b.role]-ROLE_RANK[a.role]);
+  const inv=[...S.invites].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const allowedRoles=admin?['Admin','Manager','Member']:['Member'];
+  if(!S.inviteRole||!allowedRoles.includes(S.inviteRole))S.inviteRole=allowedRoles[allowedRoles.length-1];
+  if(!S.inviteMethod)S.inviteMethod='email';
+  const lastLink=S.lastLinkInvite&&S.invites.find(v=>v.id===S.lastLinkInvite);
+  const n={Admin:0,Manager:0,Member:0};roles.forEach(r=>n[r.role]=(n[r.role]||0)+1);
+  const relay=canRelay();
+  return`
+  <div class="ph"><div class="t"><h1>Team & invites</h1><p class="lede">${n.Admin+1} ${n.Admin+1===1?'Admin':'Admins'}, ${plural(n.Manager,'Manager')} and ${plural(n.Member,'Member')}. Invite people by email or with a link, and change anyone’s role.</p></div></div>
+  ${MODE==='claude'?`<div class="note">${I.info}<div><b>Two steps to add someone.</b> Invite them here to give them a role. Then use <b>Share</b> on claude.ai to add their email as an <b>Editor</b> so their changes save. To skip the second step, use the self-hosted version with Google sign-in.</div></div>`:''}
+  <div class="tabs">${[['invite','Invite people'],['members','People ('+(roles.length+1)+')'],['invites','Sent invites ('+inv.length+')']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="teamTab" data-v="${k}">${l}</button>`).join('')}</div>
+  ${tab==='invite'?`
+  <div class="grid2"><section class="panel">
+    <h2>Their role</h2><div class="roles3" style="margin-top:10px">${['Admin','Manager','Member'].map(r=>`<button type="button" class="rcard ${S.inviteRole===r?'on':''}" data-act="pickRole" data-v="${r}" ${allowedRoles.includes(r)?'':'disabled'} aria-pressed="${S.inviteRole===r}"><b>${r}</b><span>${ROLE_DESC[r]}</span></button>`).join('')}</div>
+    <h2>How to invite</h2><div class="seg" style="margin:10px 0 16px"><button class="${S.inviteMethod==='email'?'on':''}" data-act="invMethod" data-v="email">By email</button><button class="${S.inviteMethod==='link'?'on':''}" data-act="invMethod" data-v="link">Link or QR code</button></div>
+    ${S.inviteMethod==='email'?`
+      <div class="field"><label class="f" for="inv-emails">Email addresses</label><textarea id="inv-emails" style="min-height:96px" placeholder="One or more, separated by commas or new lines"></textarea><p class="help">When they sign in with that email, they get the ${esc(S.inviteRole)} role automatically.</p></div>
+      <div class="field"><label class="f" for="inv-pid">Which photographer is this? <span class="muted" style="font-weight:400">(only for one email)</span></label><select id="inv-pid"><option value="">Not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>
+      <button class="btn pri lg" data-act="invEmail">${relay?I.send+' Send '+esc(S.inviteRole)+' invite':I.mail+' Create '+esc(S.inviteRole)+' invite'}</button>`
+    :`
+      <div class="row"><div class="field"><label class="f" for="inv-exp">Link works for</label><select id="inv-exp"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="0">Until I turn it off</option></select></div>
+      <div class="field"><label class="f" for="inv-multi">Who can use it</label><select id="inv-multi"><option value="1" selected>Anyone with the link</option><option value="0">Just one person</option></select></div></div>
+      <button class="btn pri lg" data-act="invLink">${I.link} Make a ${esc(S.inviteRole)} link</button>
+      ${lastLink?`<div style="margin-top:18px;display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center"><div class="qrbox" style="padding:8px">${qrSVG(inviteLink(lastLink.id))}</div><div><b>${esc(lastLink.role)} invite</b><p class="help">Share the link, or let people scan the code.</p><div class="linkbox"><code>${esc(inviteLink(lastLink.id))}</code><button class="btn sm ink" data-act="copyInv" data-id="${lastLink.id}">${I.copy} Copy</button></div></div></div>`:''}`}
+    ${!shareUrl()?`<div class="note warn" style="margin-top:16px">${I.info}<div>Add the tracker’s link in <a href="#config">Settings</a> so invite links open this page.</div></div>`:''}
+  </section>
+  <section class="panel"><h2>How invites work</h2><ol style="padding-left:20px;margin:12px 0 0;line-height:1.75;color:var(--ink2)">
+    <li><b>By email:</b> the role is saved for that address. ${relay?'The invite email goes out right away.':'A Gmail draft opens with their link, ready to send.'}</li>
+    <li><b>Link or QR code:</b> anyone who opens it can join with that role. Pick “Just one person” for officer roles.</li>
+    <li>Change or remove roles on the <b>People</b> tab. Turn off links on the <b>Sent invites</b> tab.</li>
+    <li>Managers can invite Members. Only Admins can make Admins and Managers.</li></ol></section></div>`:''}
+  ${tab==='members'?`
+  <section class="sheet"><table class="stack"><thead><tr><th>Person</th><th>Role</th><th>Photographer</th><th>Joined</th><th><span class="sr">Actions</span></th></tr></thead><tbody>
+    <tr><td data-l="Person"><div class="pl"><img class="av" data-uav="owner" alt=""><div class="grow"><div class="nm">Tracker owner${S.me.isOwner?' (you)':''}</div><div class="sub">Always an Admin</div></div></div></td><td data-l="Role"><span class="rb Admin">Admin</span></td>
+      <td data-l="Photographer">${S.me.isOwner?`<select data-act="setOwnLink" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px" aria-label="Your photographer name"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${myPid()===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`:'<span class="muted">Not shown</span>'}</td><td></td><td></td></tr>
+    ${roles.map(r=>{const can=admin||(canManage()&&r.role==='Member');return`<tr><td data-l="Person"><div class="pl"><img class="av" data-uav="${esc(r.id)}" alt="" style="width:28px;height:28px;border-radius:50%"><div class="grow"><div class="nm" data-uid="${esc(r.id)}">${r.id===S.me.id?'You':'Team member'}</div><div class="sub">${esc(r.email||'')}</div></div></div></td>
+      <td data-l="Role">${can&&r.id!==S.me.id?`<select data-act="setRole" data-id="${esc(r.id)}" aria-label="Role" style="width:auto;min-height:34px;padding:4px 8px">${(admin?['Admin','Manager','Member']:['Member']).map(x=>`<option ${x===r.role?'selected':''}>${x}</option>`).join('')}</select>`:`<span class="rb ${esc(r.role)}">${esc(r.role)}</span>`}</td>
+      <td data-l="Photographer">${can?`<select data-act="setLink" data-id="${esc(r.id)}" aria-label="Photographer" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${r.photographerId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`:esc(r.photographerId?pName(r.photographerId):'None')}</td>
+      <td data-l="Joined" class="muted nowrap">${esc(ago(r.joinedAt))}</td>
+      <td class="act">${can&&r.id!==S.me.id?`<button class="ibtn" aria-label="Remove from team" data-act="rmRole" data-id="${esc(r.id)}">${I.trash}</button>`:''}</td></tr>`}).join('')}
+  </tbody></table>${!roles.length?'<div class="empty"><strong>Nobody has joined yet</strong>Invite your officers first, then your photographers.</div>':''}</section>`:''}
+  ${tab==='invites'?`
+  <section class="sheet">${inv.length?`<table class="stack"><thead><tr><th>Sent to</th><th>Role</th><th>Status</th><th>Expires</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${inv.map(v=>{const st=inviteState(v);const can=admin||(canManage()&&v.role==='Member');return`<tr>
+    <td data-l="Sent to">${v.email?`<b>${esc(v.email)}</b>`:`<span>${v.multi?'Link for anyone':'Link for one person'}</span>`}<div class="muted small">Made ${esc(ago(v.createdAt))}${v.acceptedBy&&v.acceptedBy.length?`, ${plural(v.acceptedBy.length,'person','people')} joined`:''}</div></td>
+    <td data-l="Role">${can&&st==='pending'?`<select data-act="setInvRole" data-id="${v.id}" aria-label="Invite role" style="width:auto;min-height:34px;padding:4px 8px">${(admin?['Admin','Manager','Member']:['Member']).map(x=>`<option ${x===v.role?'selected':''}>${x}</option>`).join('')}</select>`:`<span class="rb ${esc(v.role)}">${esc(v.role)}</span>`}</td>
+    <td data-l="Status"><span class="st ${st==='pending'?'progress':st==='accepted'?'done':'grey'}">${INV_LABEL[st]}</span></td><td data-l="Expires" class="muted nowrap">${v.expiresAt?esc(new Date(v.expiresAt).toLocaleDateString()):'Never'}</td>
+    <td class="act">${st==='pending'?`<button class="btn sm" data-act="copyInv" data-id="${v.id}">${I.copy} Link</button> <button class="ibtn" aria-label="Show QR code" data-act="qrInv" data-id="${v.id}">${I.qr}</button>${v.email?` <button class="btn sm" data-act="resendInv" data-id="${v.id}">${I.mail} Resend</button>`:''}${can?`<button class="ibtn" aria-label="Turn off invite" data-act="revokeInv" data-id="${v.id}">${I.x}</button>`:''}`:''}${can?`<button class="ibtn" aria-label="Delete invite" data-act="delInv" data-id="${v.id}">${I.trash}</button>`:''}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty"><strong>No invites yet</strong></div>'}</section>`:''}`;
+}
+async function fillProfiles(){
+  if(!USER)return;
+  const ids=$$('[data-uid]').map(e=>e.dataset.uid).concat($$('[data-uav]').map(e=>e.dataset.uav).filter(x=>x!=='owner'));
+  try{const ps=ids.length?await USER.profiles(Array.from(new Set(ids))):{};
+    $$('[data-uid]').forEach(e=>{const p=ps[e.dataset.uid];if(e.textContent!=='You')e.textContent=(p&&p.name)||'Team member'});
+    $$('[data-uav]').forEach(e=>{if(e.dataset.uav==='owner'){e.src=S.me.isOwner?(S.me.avatarUrl||avatarData(S.me.name)):avatarData('Owner');e.style.cssText='width:28px;height:28px;border-radius:50%';return}const p=ps[e.dataset.uav];e.src=(p&&p.avatarUrl)||avatarData(p&&p.name||'?')});
+  }catch(_){}
+}
+function inviteEmailBody(v){return`Hi,\n\nYou’re invited to join the Element photo tracker as a ${v.role}.\n\n${ROLE_DESC[v.role]}\n\nOpen this link and sign in${v.email?` with ${v.email}`:''} to join:\n${inviteLink(v.id)}\n\nElement Media`}
+const gmailHref=(to,su,body,bcc)=>`https://mail.google.com/mail/?view=cm&fs=1&tf=1${to?'&to='+encodeURIComponent(to):''}${bcc?'&bcc='+encodeURIComponent(bcc):''}&su=${encodeURIComponent(su)}&body=${encodeURIComponent(body)}`;
+const INV_SUBJ='You’re invited to the Element photo tracker';
+function showGmailModal(title,intro,href,body){
+  openModal({title,body:`<p style="margin-top:0">${esc(intro)}</p><div class="preview">${esc(body)}</div>`,actions:[{label:I.copy+' Copy message',onClick:()=>{copyText(body,'Message copied');return false}},{label:I.mail+' Open in Gmail',cls:'pri',href}]});
+}
+async function createEmailInvites(){
+  const emails=Array.from(new Set($('#inv-emails').value.split(/[\s,;]+/).map(norm).filter(Boolean)));
+  const bad=emails.filter(e=>!isEmail(e));if(!emails.length||bad.length){toast(bad.length?'Check these emails: '+bad.join(', '):'Add at least one email.','err');return}
+  const pid=emails.length===1?$('#inv-pid').value:'';const created=[];
+  for(const e of emails){
+    const ex=S.invites.find(v=>v.email===e&&inviteState(v)==='pending'&&v.role===S.inviteRole);if(ex){created.push(ex);continue}
+    const id=randCode(10),exp=Date.now()+30*864e5;
+    const v={role:S.inviteRole,email:e,multi:false,status:'pending',photographerId:pid,createdAt:nowISO(),createdBy:S.me.id||'',expiresAt:new Date(exp).toISOString(),expiresMs:exp,acceptedBy:[]};
+    if(await W(()=>DB.doc('invites/'+id).set(v)))created.push(Object.assign({id},v));
+  }
+  if(!created.length)return;
+  if(pid){const p=pById(pid);if(p&&!p.email)await W(()=>DB.doc('photographers/'+pid).update({email:emails[0]}))}
+  $('#inv-emails').value='';
+  if(canRelay()){
+    let sent=0;for(const v of created){try{await relaySend({to:[v.email],subject:INV_SUBJ,body:inviteEmailBody(v)});sent++}catch(e){toast(e.message,'err');break}}
+    if(sent)toast(`Sent ${plural(sent,'invite')}`,'gold');return;
+  }
+  const first=created[0];
+  const body=created.length===1?inviteEmailBody(first):`Hi,\n\nYou’re invited to join the Element photo tracker as a ${S.inviteRole}.\n\n${ROLE_DESC[S.inviteRole]}\n\nFind your email below and open your link to join:\n${created.map(v=>`${v.email}: ${inviteLink(v.id)}`).join('\n')}\n\nElement Media`;
+  showGmailModal('Invites ready',created.length>1?'Everyone is in BCC. Each person’s link is in the message.':'Send this from your Gmail.',created.length===1?gmailHref(first.email,INV_SUBJ,body):gmailHref('',INV_SUBJ,body,created.map(v=>v.email).join(',')),body);
+}
+async function createLinkInvite(){
+  const days=+$('#inv-exp').value,multi=$('#inv-multi').value==='1';const id=randCode(10);const exp=days?Date.now()+days*864e5:0;
+  const v={role:S.inviteRole,email:'',multi,status:'pending',photographerId:'',createdAt:nowISO(),createdBy:S.me.id||'',expiresAt:exp?new Date(exp).toISOString():'',expiresMs:exp,acceptedBy:[]};
+  if(await W(()=>DB.doc('invites/'+id).set(v),'Invite link ready')){S.lastLinkInvite=id;render()}
+}
+async function acceptInvite(v,pid){
+  if(!S.me.id){toast('Sign in first to accept.','err');return false}
+  const cur=myRoleDoc();
+  const data={role:v.role,email:(S.me.email||v.email||cur?.email||''),photographerId:pid||v.photographerId||cur?.photographerId||'',inviteCode:v.id,joinedAt:cur?.joinedAt||nowISO()};
+  if(!await W(()=>DB.doc('roles/'+S.me.id).set(data)))return false;
+  const acc=Array.from(new Set([...(v.acceptedBy||[]),S.me.id]));
+  await W(()=>DB.doc('invites/'+v.id).update(v.multi?{acceptedBy:acc}:{acceptedBy:acc,status:'accepted',acceptedAt:nowISO()}));
+  toast(`Welcome to Element! You’re a ${v.role}.`,'gold');return true;
+}
+async function fetchInvite(code){if(!DB)return null;try{const d=await DB.doc('invites/'+code).get();return d.exists?Object.assign({id:d.id},d.data()):null}catch(_){return null}}
+async function handlePending(){
+  const p=S.pending;
+  if(p){S.pending=null;
+    if(p.type==='checkin'){openCheckin(p.id);history.replaceState(null,'','#home');return}
+    if(p.type==='invite'){
+      const v=await fetchInvite(p.id);
+      if(!v){openModal({title:'This invite doesn’t work',body:'<p style="margin:0">The link was deleted or typed wrong. Ask an officer for a new one.</p>',actions:[{label:'OK',cls:'ink'}]});history.replaceState(null,'','#home');return}
+      const st=inviteState(v);
+      if(st!=='pending'&&!(v.acceptedBy||[]).includes(S.me.id)){openModal({title:'This invite '+(st==='accepted'?'was already used':st==='expired'?'expired':'was turned off'),body:'<p style="margin:0">Ask an officer for a new link.</p>',actions:[{label:'OK',cls:'ink'}]});return}
+      const mp=myPid()||v.photographerId||'';
+      openModal({title:`Join as ${v.role}`,body:`<p style="margin-top:0"><span class="rb ${esc(v.role)}">${esc(v.role)}</span> ${esc(ROLE_DESC[v.role])}</p>
+        ${v.email&&S.me.email&&norm(v.email)!==norm(S.me.email)?`<div class="note warn">${I.info}<div>This invite was sent to <b>${esc(v.email)}</b>, but you’re signed in as <b>${esc(S.me.email)}</b>. ${MODE==='firebase'?'Sign out and sign in with the invited account.':''}</div></div>`:''}
+        <div class="field"><label class="f" for="acc-pid">Which photographer are you?</label><select id="acc-pid"><option value="">I’m not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(p.name)}</option>`).join('')}</select><p class="help">This lets you check in, mark shoots done and earn points.</p></div>`,
+        actions:[{label:'Not now',onClick:()=>history.replaceState(null,'','#home')},{label:'Join the team',cls:'pri',onClick:async()=>{const ok=await acceptInvite(v,$('#acc-pid').value);if(ok)history.replaceState(null,'','#home');return ok}}]});
+      return;
+    }
+  }
+  if(!S.inviteChecked&&S.me.id&&S.me.email&&!S.me.isOwner&&DB){
+    S.inviteChecked=true;
+    try{const snap=await DB.collection('invites').where('email','==',norm(S.me.email)).get();
+      const v=snap.docs.map(d=>Object.assign({id:d.id},d.data())).find(x=>inviteState(x)==='pending');
+      const cur=myRoleDoc();if(v&&(!cur||cur.role!==v.role))acceptInvite(v,v.photographerId);
+    }catch(_){}
+  }
+}
+
+/* ---------- Settings ---------- */
+function vConfig(){
+  const s=S.settings;
+  return`
+  <div class="ph"><div class="t"><h1>Settings</h1><p class="lede">Branding, points and links used across the tracker.</p></div></div>
+  <div class="grid2">
+    <section class="panel"><h2>Logo</h2><p class="muted" style="margin:4px 0 14px">Shown in the sidebar and on posters. A white or see-through PNG looks best on the dark background.</p>
+      <div style="background:var(--ink);border-radius:12px;padding:18px;display:inline-flex;margin-bottom:14px;color:#fff" class="brand">${logoHTML()}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn ink" style="cursor:pointer">${I.plus} Upload logo<input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" id="logo-file" class="hidden"></label>${s.logoData?`<button class="btn danger" data-act="logoRm">Remove logo</button>`:''}</div>
+      <p class="help" id="logo-msg"></p></section>
+    <section class="panel"><form id="cfgf" onsubmit="return false">
+      <div class="field"><label class="f" for="cfg-u">Tracker link</label><input id="cfg-u" type="url" name="shareUrl" value="${esc(s.shareUrl||'')}" placeholder="${MODE==='firebase'?esc(location.origin+location.pathname):'https://claude.ai/artifact/…'}"><p class="help">Used in invite links, QR codes and emails.${MODE==='firebase'?' Leave blank to use this site’s address.':''}</p></div>
+      <div class="row"><div class="field"><label class="f" for="cfg-p">Points for each shoot done</label><input id="cfg-p" type="number" name="pointsPerCompletion" min="0" step="1" value="${esc(s.pointsPerCompletion??1)}"><p class="help">Changes apply to shoots marked done from now on.</p></div>
+      <div class="field"><label class="f" for="cfg-y">School year</label><input id="cfg-y" type="text" name="schoolYear" value="${esc(s.schoolYear||'2026–27')}"></div></div>
+      <div class="field"><label class="f" for="cfg-n">Note at the top of the weekly shoots</label><textarea id="cfg-n" name="weekNote">${esc(s.weekNote||'')}</textarea></div>
+      <button class="btn pri" data-act="cfgSave">Save settings</button></form></section>
+  </div>`;
+}
+function readLogo(file){
+  return new Promise((res,rej)=>{
+    if(file.size>8*1024*1024)return rej(new Error('Use an image under 8 MB.'));
+    const fr=new FileReader();fr.onerror=()=>rej(new Error('Couldn’t read that file.'));
+    fr.onload=()=>{if(file.type==='image/svg+xml'){if(fr.result.length>150000)return rej(new Error('That SVG is too large. Try a PNG.'));return res(fr.result)}
+      const img=new Image();img.onload=()=>{const max=480,sc=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);let out=c.toDataURL('image/png');if(out.length>180000)out=c.toDataURL('image/webp',.9);if(out.length>180000)return rej(new Error('That logo is too detailed. Try a smaller PNG.'));res(out)};img.onerror=()=>rej(new Error('That file isn’t an image.'));img.src=fr.result};
+    fr.readAsDataURL(file)});
+}
+
+/* ---------- Help / tutorial ---------- */
+const TUT={
+  member:[
+    {img:'home.jpg',t:'Start on Home',s:['Open the tracker and sign in. Home shows your shoots, your points and open shoots.','Tap <b>I’ll take it</b> on an open shoot to ask for it.','Your point total is always at the top.']},
+    {img:'checkin.jpg',t:'Check in with the QR code',s:['At the meeting, scan the check-in QR code with your phone camera.','The tracker opens to that shoot. Tap <b>Check in now</b>.','Not on the shoot? Tap <b>Ask to join</b> and an officer can add you.'],mobile:true},
+    {img:'complete.jpg',t:'Mark your shoot done and get your point',s:['Tap <b>Mark done</b> next to your name. A short checklist opens.','Tick the steps and <b>paste the link to your photos in Drive</b>. You can’t send it without the link.','Tap <b>Send for credit</b>. Your shoot shows <b>Pending credit</b>.','An officer checks your photos and gives you credit, and your point appears. If they send it back, you’ll see their note, so fix it and mark it done again.']},
+    {img:'request.jpg',t:'Request a club',s:['Go to <b>Request a club</b>.','Choose your name, the club and the meeting date, then tap <b>Send request</b>.','When an officer approves it, the shoot shows up under Your shoots.']}
+  ],
+  officer:[
+    {img:'add.jpg',t:'Post a shoot',s:['On <b>This week’s shoots</b>, tap <b>Add a shoot</b>.','Pick the club, date, times and place, and say what to shoot.','Add photographers now, or leave it open so people can request it.','Next week, tap <b>Copy to next week</b> to reuse the same meetings.']},
+    {img:'emails.jpg',t:'Add everyone’s emails',s:['Go to <b>Points & roster</b> and tap <b>Add names and emails</b>.','Paste one person per line, like <i>Flatley, Connor, 30145cf@chaminade-hs.org</i>. Names already on the roster get their email filled in.','Everyone with an email is on the email list automatically.']},
+    {img:'credit.jpg',t:'Give credit for finished shoots',s:['When someone marks a shoot done, it shows under <b>Waiting for credit</b> on Home. The Home menu item shows how many are waiting.','Tap <b>Check Drive</b> to look at their photos.','Tap <b>Give credit</b> to award the point, or <b>Send back</b> with a note saying what to fix.']},
+    {img:'award.jpg',t:'Award points by hand',s:['Go to <b>Points & roster</b> and tap <b>Award points</b>, or tap <b>Award</b> next to someone’s name.','Pick one or more people, how many points, and a reason.','Use <b>Take away</b> to fix a mistake. Every award shows in Recent awards and the person’s history.']},
+    {img:'approve.jpg',t:'Approve requests',s:['Waiting requests show on Home and on <b>Request a club</b>.','Tap <b>Approve</b>. The photographer is added to that shoot, or a new shoot is made if there isn’t one.','Tap <b>Decline</b> if the shoot is already covered.']},
+    {img:'qr.jpg',t:'Print check-in QR codes',s:['On <b>This week’s shoots</b>, tap <b>Check-in QR codes</b> for the whole week, or the QR icon on one shoot.','Print them, or show one on your phone at the meeting.','Photographers scan it to check in. Their check-in time shows on the shoot.']},
+    {img:'email.jpg',t:'Send reminders',s:['Go to <b>Send an email</b>.','Pick who gets it, like everyone on the weekly list or the photographers on one shoot.','Pick a starting message, edit it, then send. The bell icon on a shoot starts a reminder for its photographers.']},
+    {img:'invite.jpg',t:'Invite your team',s:['Go to <b>Team & invites</b> and pick a role: Admin, Manager or Member.','Invite by email, or make a link and QR code to share.','Change roles or link people to their roster name on the <b>People</b> tab.']}
+  ]
+};
+function vHelp(){
+  const tab=S.f.helpTab;const list=TUT[tab];
+  return`<div class="ph"><div class="t"><h1>How to use the tracker</h1><p class="lede">Short guides with screenshots. Photographers only need the first set.</p></div></div>
+  <div class="seg help-tabs"><button class="${tab==='member'?'on':''}" data-act="helpTab" data-v="member">For photographers</button><button class="${tab==='officer'?'on':''}" data-act="helpTab" data-v="officer">For officers</button></div>
+  ${list.map((x,i)=>`<section class="tut ${x.mobile?'mobile':''}"><div><div class="k">${i+1}</div><h2>${x.t}</h2><ol>${x.s.map(s=>`<li>${s}</li>`).join('')}</ol></div><figure><img src="${x.img}" alt="Screenshot: ${esc(x.t)}" loading="lazy" onerror="this.closest('figure').style.display='none'"></figure></section>`).join('')}`;
+}
+
+/* ---------- Seed import (hosted) ---------- */
+async function importSeed(btn){
+  btn.disabled=true;btn.textContent='Importing…';
+  try{const r=await fetch('seed.json');if(!r.ok)throw new Error('seed.json is missing from the site folder.');const ops=await r.json();
+    let n=0;const chunk=20;
+    for(let i=0;i<ops.length;i+=chunk){await Promise.all(ops.slice(i,i+chunk).map(o=>DB.doc(o.path).set(o.data)));n+=Math.min(chunk,ops.length-i);btn.textContent=`Importing… ${n}/${ops.length}`}
+    toast(`Imported ${n} records`,'gold');
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='Import spreadsheet data'}
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.in;if(k){S.f[k]=e.target.value;render()}});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='logo-file'&&t.files&&t.files[0]){const msg=$('#logo-msg');msg.textContent='Uploading…';
+    try{const data=await readLogo(t.files[0]);if(await W(()=>DB.doc('app/settings').set(Object.assign(clone(S.settings),{logoData:data})),'Logo updated'))msg.textContent=''}catch(err){msg.textContent=err.message}return}
+  const a=t.dataset&&t.dataset.act;if(!a)return;const id=t.dataset.id;
+  if(a==='fmine'){S.f.mine=t.checked;render()}
+  if(a==='fstatus'){S.f.status=t.value;render()}
+  if(a==='clubStatus')await W(()=>DB.doc('clubs/'+id).update({status:t.value}),'Coverage updated');
+  if(a==='setRole')await W(()=>DB.doc('roles/'+id).update({role:t.value}),'Role changed to '+t.value);
+  if(a==='setLink')await W(()=>DB.doc('roles/'+id).update({photographerId:t.value}),'Photographer saved');
+  if(a==='setOwnLink')await linkMe(t.value);
+  if(a==='setInvRole')await W(()=>DB.doc('invites/'+id).update({role:t.value}),'Invite role changed');
+});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT'||(b.tagName==='INPUT'))return;
+  const a=b.dataset.act,id=b.dataset.id;const findA=()=>S.assignments.find(x=>x.id===id);
+  switch(a){
+    case'googleSignIn':signInGoogle();break;
+    case'signout':closeModal();FB&&FB.auth.signOut();break;
+    case'moreMenu':openMoreMenu();break;
+    case'preview':closeModal();S.preview=!S.preview;if(S.preview&&!VIEWS.find(v=>v.id===S.view&&!v.need))S.view='home';toast(S.preview?'Previewing as a Member':'Back to your Admin view');render();break;
+    case'linkMe':await linkMe($('#linkme').value);break;
+    case'importSeed':importSeed(b);break;
+    case'wkPrev':S.week=addDays(S.week,-7);render();break;
+    case'wkNext':S.week=addDays(S.week,7);render();break;
+    case'wkToday':S.week=mondayOf(new Date());render();break;
+    case'layout':S.layout=b.dataset.v;store.set('layout',S.layout);render();break;
+    case'cfilter':S.f.clubFilter=b.dataset.v;render();break;
+    case'newA':openAssignmentForm();break;
+    case'editA':openAssignmentForm(findA());break;
+    case'delA':{const x=findA();if(x&&await confirmBox('Delete this shoot?',`Delete <b>${esc(x.club)}</b> on ${esc(fmtShort(x.date))}? Points from this shoot are removed too.`))await W(()=>DB.doc('assignments/'+id).delete(),'Shoot deleted');break}
+    case'remindA':startEmail({audience:'assignment',template:'assignment',assignmentId:id});break;
+    case'qrA':{const x=findA();if(x)openQRForAssignment(x);break}
+    case'weekQR':openWeekQR();break;
+    case'copyWeek':copyWeekForward();break;
+    case'checkin':openCheckin(id);break;
+    case'complete':{if(canManage()){b.disabled=true;await setCompletion(id,b.dataset.pid,true)}else openSubmitSteps(id,b.dataset.pid);break}
+    case'approveC':{b.disabled=true;await approveCredit(id,b.dataset.pid);break}
+    case'returnC':openSendBack(id,b.dataset.pid);break;
+    case'approveAll':approveAll();break;
+    case'withdraw':{if(await confirmBox('Undo mark done?','This takes it out of the officers’ credit list. You can mark it done again later.','Undo'))await setMapEntry(id,'completions',b.dataset.pid,null);break}
+    case'uncomplete':{if(await confirmBox('Remove this credit?',`Remove the credit and point for <b>${esc(displayName(pName(b.dataset.pid)))}</b>?`,'Remove credit'))await setCompletion(id,b.dataset.pid,false);break}
+    case'reqA':{const x=findA(),mp=myPid();if(!mp){location.hash='requests';toast('Choose your name in the request form.');break}if(x)await submitRequest({photographerId:mp,club:x.club,date:x.date,assignmentId:x.id,note:''});break}
+    case'newClub':openClubForm();break;
+    case'editClub':openClubForm(S.clubs.find(c=>c.id===id));break;
+    case'delClub':{const c=S.clubs.find(x=>x.id===id);if(c&&await confirmBox('Delete this club?',`Remove <b>${esc(c.name)}</b> from the list? Its shoots stay.`))await W(()=>DB.doc('clubs/'+id).delete(),'Club removed');break}
+    case'phNew':openPhotographerForm();break;
+    case'phBulk':e.preventDefault();openBulkAdd();break;
+    case'noEmail':e.preventDefault();S.f.noEmail=!S.f.noEmail;render();break;
+    case'copyEmails':{const em=S.photographers.filter(p=>p.email).map(p=>p.email);copyText(em.join(', '),`${plural(em.length,'email')} copied`);break}
+    case'phEdit':openPhotographerForm(pById(id));break;
+    case'phHist':openHistory(pById(id));break;
+    case'award':openAward(id?[id]:[]);break;
+    case'delAward':if(await confirmBox('Remove this award?','The points come off their total.','Remove'))await W(()=>DB.doc('awards/'+id).delete(),'Award removed');break;
+    case'phDel':{const p=pById(id);if(!p)break;const n=S.assignments.filter(x=>(x.photographers||[]).includes(id)).length;if(await confirmBox('Remove from roster?',`Remove <b>${esc(p.name)}</b>?${n?` They’re on ${plural(n,'shoot')}, which will show “Removed photographer”, and their points stop counting.`:''}`,'Remove'))await W(()=>DB.doc('photographers/'+id).delete(),'Removed from roster');break}
+    case'reqTab':S.f.reqTab=b.dataset.v;render();break;
+    case'reqSubmit':{const f=$('#rqf');const ok=await submitRequest({photographerId:f.pid.value,club:f.club.value.trim(),date:f.date.value,note:f.note.value.trim()});if(ok){f.club.value='';f.note.value='';f.date.value=''}break}
+    case'reqOk':{const r=S.requests.find(x=>x.id===id);if(r)await approveRequest(r);break}
+    case'reqNo':await W(()=>DB.doc('requests/'+id).update({status:'declined',decidedAt:nowISO(),decidedBy:S.me.id||''}),'Request declined');break;
+    case'reqDel':if(await confirmBox('Delete this request?','It disappears from the list.'))await W(()=>DB.doc('requests/'+id).delete(),'Request deleted');break;
+    case'emReset':e.preventDefault();S.emailDraft.dirty=false;rerenderEmail();break;
+    case'emSend':sendNow(b);break;
+    case'emCopyTo':{const{out}=recipients();if(!out.length){toast('Nobody to copy yet.','err');break}copyText(out.map(r=>r.email).join(', '),`${plural(out.length,'address','addresses')} copied`);break}
+    case'teamTab':S.f.teamTab=b.dataset.v;render();break;
+    case'pickRole':S.inviteRole=b.dataset.v;render();break;
+    case'invMethod':S.inviteMethod=b.dataset.v;render();break;
+    case'invEmail':createEmailInvites();break;
+    case'invLink':createLinkInvite();break;
+    case'copyInv':copyText(inviteLink(id),'Invite link copied');break;
+    case'qrInv':{const v=S.invites.find(x=>x.id===id);if(v)openModal({title:v.role+' invite',cls:'printable',body:`<div class="qrbox" style="border:0"><div class="qrw" style="width:260px">${qrSVG(inviteLink(id))}</div><b>Join Element as a ${esc(v.role)}</b><span>Scan with your phone camera</span></div>`,actions:[...(canPrint()?[{label:'Print',cls:'ink',onClick:()=>{window.print();return false}}]:[]),{label:'Done',cls:'pri'}]});break}
+    case'resendInv':{const v=S.invites.find(x=>x.id===id);if(!v)break;if(canRelay()){try{await relaySend({to:[v.email],subject:INV_SUBJ,body:inviteEmailBody(v)});toast('Invite sent again','gold')}catch(er){toast(er.message,'err')}}else showGmailModal('Resend invite','This opens a Gmail draft to '+v.email+'.',gmailHref(v.email,INV_SUBJ,inviteEmailBody(v)),inviteEmailBody(v));break}
+    case'revokeInv':if(await confirmBox('Turn off this invite?','The link stops working. People who already joined keep their role.','Turn off'))await W(()=>DB.doc('invites/'+id).update({status:'revoked'}),'Invite turned off');break;
+    case'delInv':if(await confirmBox('Delete this invite?','It’s removed from the list.'))await W(()=>DB.doc('invites/'+id).delete(),'Invite deleted');break;
+    case'rmRole':if(await confirmBox('Remove from the team?','They lose their role and can only look around.','Remove'))await W(()=>DB.doc('roles/'+id).delete(),'Removed from the team');break;
+    case'logoRm':await W(()=>DB.doc('app/settings').set(Object.assign(clone(S.settings),{logoData:''})),'Logo removed');break;
+    case'helpTab':S.f.helpTab=b.dataset.v;render();break;
+    case'cfgSave':{const f=$('#cfgf');const u=f.shareUrl.value.trim();if(u&&!/^https:\/\//.test(u)){toast('The link has to start with https://','err');break}
+      await W(()=>DB.doc('app/settings').set(Object.assign(clone(S.settings),{shareUrl:u.replace(/#.*$/,''),pointsPerCompletion:Math.max(0,Math.round(Number(f.pointsPerCompletion.value)||0)),schoolYear:f.schoolYear.value.trim(),weekNote:f.weekNote.value.trim()})),'Settings saved');break}
+  }
+});
+
+/* ---------- Routing ---------- */
+function parseHash(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(h.startsWith('inv-')){S.pending={type:'invite',id:h.slice(4)};return}
+  if(h.startsWith('checkin-')){S.pending={type:'checkin',id:h.slice(8)};return}
+  if(VIEWS.some(v=>v.id===h))S.view=h;
+}
+window.addEventListener('hashchange',()=>{parseHash();closeModal();render();window.scrollTo&&window.scrollTo(0,0)});
+
+/* ---------- Data subscriptions ---------- */
+const SUBS={};
+const BASE_COLS=['assignments','photographers','clubs','roles','requests','awards'];
+const MANAGER_COLS=['invites','emails'];
+function sub(c){
+  if(SUBS[c]||!DB)return;
+  SUBS[c]=DB.collection(c).onSnapshot(snap=>{S[c]=snap.docs.map(d=>Object.assign({id:d.id},d.data()));S.loaded.add(c);if(c==='roles')syncSubs();render()},
+    err=>{S.loaded.add(c);if(!(err&&(err.code==='permission-denied')))toast(errMsg(err),'err');render()});
+}
+function unsub(c){if(SUBS[c]){try{SUBS[c]()}catch(_){}delete SUBS[c]}S[c]=[];S.loaded.delete(c)}
+function syncSubs(){
+  BASE_COLS.forEach(sub);if(MODE==='firebase')sub('users');
+  if(canManage()||MODE==='claude')MANAGER_COLS.forEach(sub);else MANAGER_COLS.forEach(unsub);
+}
+function unsubAll(){Object.keys(SUBS).forEach(unsub)}
+
+/* ---------- Boot: claude.ai ---------- */
+async function bootClaude(){
+  if(!(window.claude&&window.claude.use)){render();return}
+  const timer=setTimeout(()=>{if(!S.loaded.size)toast('Still connecting to the tracker data…')},10000);
+  try{[DB,USER]=await Promise.all([window.claude.use('db'),window.claude.use('user')])}catch(_){}
+  if(USER){try{const me=await USER.me();S.me={id:me.id,email:me.email?norm(me.email):null,name:me.name,isOwner:me.isOwner,avatarUrl:me.avatarUrl};S.canWrite=await USER.can('data.write');if(S.canWrite===false)S.readOnly=true}catch(_){}}
+  if(!DB){clearTimeout(timer);render();return}
+  DB.doc('app/settings').onSnapshot(s=>{S.settings=s.exists?s.data():{};clearTimeout(timer);render()},err=>toast(errMsg(err),'err'));
+  syncSubs();render();
+}
+
+/* ---------- Boot: Firebase (self-hosted) ---------- */
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s)})}
+function signInError(e){
+  const c=e&&e.code||'';
+  if(c==='auth/unauthorized-domain')return'This website isn’t approved for sign-in yet. Add it under Firebase Authentication, Settings, Authorized domains.';
+  if(c==='auth/popup-blocked')return'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.';
+  if(c==='auth/network-request-failed')return'No connection. Check your internet and try again.';
+  if(/missing initial state/i.test(e&&e.message||''))return'Sign-in was interrupted by your browser’s privacy settings. Try again, or open the site in Safari or Chrome directly (not inside another app).';
+  return(e&&e.message)||'Sign-in didn’t work. Try again.';
+}
+async function signInGoogle(){
+  try{const p=new firebase.auth.GoogleAuthProvider();if(CFG.googleHostedDomain)p.setCustomParameters({hd:CFG.googleHostedDomain,prompt:'select_account'});else p.setCustomParameters({prompt:'select_account'});
+    try{await FB.auth.signInWithPopup(p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'))await FB.auth.signInWithRedirect(p);else if(e&&e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request')throw e}}
+  catch(e){toast(signInError(e),'err')}
+}
+async function bootFirebase(){
+  const v='10.12.2',b=`https://www.gstatic.com/firebasejs/${v}/`;
+  try{await loadScript(b+'firebase-app-compat.js');await loadScript(b+'firebase-auth-compat.js');await loadScript(b+'firebase-firestore-compat.js')}
+  catch(e){$('#root').innerHTML=`<div class="loading">Couldn’t load sign-in. Check your connection and reload.</div>`;return}
+  const fcfg=Object.assign({},CFG.firebase);
+  // Sign in through this site's own address (proxied to Firebase by _redirects),
+  // so Safari and other privacy-focused browsers don't lose the sign-in state.
+  if(CFG.authProxy&&location.protocol==='https:'&&!/\.(firebaseapp\.com|web\.app)$/.test(location.hostname))fcfg.authDomain=location.host;
+  firebase.initializeApp(fcfg);
+  FB={auth:firebase.auth()};DB=firebase.firestore();
+  FB.auth.getRedirectResult().catch(e=>{if(e&&e.code&&e.code!=='auth/no-auth-event')toast(signInError(e),'err')});
+  const owners=(CFG.ownerEmails||[]).map(norm);
+  DB.doc('app/settings').onSnapshot(s=>{S.settings=s.exists?s.data():{};render()},()=>{});
+  USER={me:async()=>S.me,can:async()=>true,profiles:async ids=>{const out={};for(const id of[].concat(ids)){const u=S.users.find(x=>x.id===id);out[id]={id,name:u?.name||'',avatarUrl:u?.photo||avatarData(u?.name||'?'),email:u?.email||null}}return out}};
+  FB.auth.onAuthStateChanged(async u=>{
+    if(!u){S.signedIn=false;S.me={id:null,email:null,name:'',isOwner:false,avatarUrl:''};unsubAll();S.inviteChecked=false;S.mySub=null;S.mySubChecked=false;$('#root').innerHTML='';render();return}
+    S.signedIn=true;S.canWrite=true;
+    S.me={id:u.uid,email:norm(u.email),name:u.displayName||'',isOwner:owners.includes(norm(u.email)),avatarUrl:u.photoURL||avatarData(u.displayName||u.email)};
+    DB.doc('users/'+u.uid).set({name:u.displayName||'',email:norm(u.email),photo:u.photoURL||'',lastSeen:nowISO()}).catch(()=>{});
+    $('#root').innerHTML='';syncSubs();render();
+  });
+  render();
+}
+
+/* ---------- Start ---------- */
+parseHash();
+if(MODE==='firebase')bootFirebase();else bootClaude();
+</script>
+</body>
+</html>
