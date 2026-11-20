@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Element Club Photo Tracker</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#17161B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Element">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -390,6 +398,12 @@ td.act{white-space:nowrap;text-align:right}
 .loading{display:flex;align-items:center;gap:12px;color:var(--muted);padding:60px 0;justify-content:center}
 .spin{width:20px;height:20px;border:3px solid var(--line);border-top-color:var(--crimson);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+.tribar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.seg .tt{font-size:11px;opacity:.55;margin-left:5px;font-weight:700}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--line2);color:var(--muted);vertical-align:middle;margin-left:6px}
+.tag.sport{background:var(--blue-tint);color:var(--blue)}
+.tag.event{background:var(--gold-tint);color:#6E4E08}
 </style>
 </head>
 <body>
@@ -471,7 +485,7 @@ const clone=o=>JSON.parse(JSON.stringify(o||{}));
 const subId=e=>norm(e).replace(/[^a-z0-9@._+-]/g,'_').slice(0,180)||'x';
 const plural=(n,w,p)=>`${n} ${n===1?w:(p||w+'s')}`;
 const firstName=n=>{n=String(n||'');if(n.includes(','))return n.split(',')[1].trim().split(' ')[0]||n;return n.split(' ')[0]};
-const displayName=n=>{n=String(n||'');if(!n.includes(','))return n;const[l,f]=n.split(',');return `${(f||'').trim()} ${l.trim()}`.trim()};
+const displayName=n=>{n=String(n||'');const i=n.indexOf(',');if(i<0)return n.trim();return (n.slice(0,i).trim()+' '+n.slice(i+1).trim()).trim()};
 const initials=n=>{const d=displayName(n).replace(/^(Mr|Mrs|Ms|Dr)\.?\s+/i,'').split(/\s+/).filter(Boolean);return((d[0]||'?')[0]+((d[d.length-1]||'')[0]||'')).toUpperCase()};
 const hueOf=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
 const avatarBg=s=>`hsl(${hueOf(s)} 28% 42%)`;
@@ -481,7 +495,7 @@ const store={get(k){try{return localStorage.getItem('element.'+k)}catch(_){retur
 /* ---------- State ---------- */
 const S={settings:{},loaded:new Set(),me:{id:null,email:null,name:'',isOwner:false,avatarUrl:''},
   signedIn:MODE==='claude',canWrite:null,readOnly:false,week:mondayOf(new Date()),view:'home',
-  f:{q:'',mine:false,status:'all',clubFilter:'all',clubQ:'',phQ:'',subQ:'',reqTab:'pending',teamTab:'invite',helpTab:'member'},
+  f:{q:'',mine:false,status:'all',clubFilter:'all',clubQ:'',phQ:'',subQ:'',reqTab:'pending',teamTab:'invite',helpTab:'member',coverTab:'club',pointsScope:'tri',rosterQ:''},
   layout:store.get('layout')||(window.innerWidth<900?'cards':'cards'),
   pending:null,inviteChecked:false,emailDraft:null,mySub:null,mySubChecked:false};
 const COLS_ALL=['assignments','photographers','clubs','roles','requests','awards','invites','emails','users'];
@@ -512,6 +526,16 @@ const ppc=()=>Math.max(0,Number(S.settings.pointsPerCompletion??1));
 const clubByName=n=>S.clubs.find(c=>norm(c.name)===norm(n));
 function shareUrl(){const u=(S.settings.shareUrl||'').trim();if(u)return u.replace(/#.*$/,'');if(MODE==='firebase')return location.origin+location.pathname;return''}
 const sortByName=arr=>[...arr].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+const TRI=[{id:'fall',label:'Fall',t:'T1'},{id:'winter',label:'Winter',t:'T2'},{id:'spring',label:'Spring',t:'T3'}];
+const TRI_LABEL={fall:'Fall (T1)',winter:'Winter (T2)',spring:'Spring (T3)'};
+function trimesterOf(dIso){const d=parseISO(dIso);const m=d?d.getMonth():new Date().getMonth();if(m>=7&&m<=10)return'fall';if(m===11||m<=1)return'winter';return'spring'}
+const aTri=a=>a.trimester||trimesterOf(a.date);
+S.trimester=trimesterOf(todayISO());
+const TYPES=[{id:'club',label:'Club',plural:'Clubs'},{id:'sport',label:'Sport',plural:'Sports'},{id:'event',label:'Event',plural:'Events'}];
+const TYPE_LABEL={club:'Club',sport:'Sport',event:'Event'};
+const subjType=c=>c.type||'club';
+const subjectsOfType=t=>S.clubs.filter(c=>subjType(c)===t);
+function triBar(scope){return `<div class="tribar"><div class="seg" role="group" aria-label="Trimester">${TRI.map(t=>`<button class="${S.trimester===t.id?'on':''}" data-act="setTri" data-v="${t.id}">${t.label}<span class="tt">${t.t}</span></button>`).join('')}</div>${scope?`<div class="seg">${[['tri','This trimester'],['year','All year']].map(([k,l])=>`<button class="${S.f.pointsScope===k?'on':''}" data-act="ptScope" data-v="${k}">${l}</button>`).join('')}</div>`:''}</div>`;}
 
 const cState=c=>!c?null:(c.status||'approved');
 const isCredited=c=>cState(c)==='approved';
@@ -526,18 +550,21 @@ function aStatus(a){
   return ok+pend?'progress':'assigned';
 }
 const ST_LABEL={open:'Needs a photographer',assigned:'Assigned',progress:'Partly done',review:'Pending credit',done:'Completed'};
-function pointsMap(){
+function pointsMap(tri){
+  tri=tri||'all';
+  const inTri=a=>tri==='all'||aTri(a)===tri;
   const m={};
-  for(const p of S.photographers)m[p.id]={earned:0,bonus:Number(p.bonus)||0,awarded:0,shoots:[],awards:[],pending:0};
+  for(const p of S.photographers)m[p.id]={earned:0,bonus:0,awarded:0,shoots:[],awards:[],pending:0};
   for(const a of S.assignments){
+    if(!inTri(a))continue;
     for(const[pid,c]of Object.entries(a.completions||{})){
       if(!m[pid])continue;
       if(isCredited(c)){m[pid].earned+=Number(c&&c.points!=null?c.points:1)||0;m[pid].shoots.push(a)}
       else if(cState(c)==='pending')m[pid].pending++;
     }
   }
-  for(const w of S.awards){if(m[w.photographerId]){m[w.photographerId].awarded+=Number(w.points)||0;m[w.photographerId].awards.push(w)}}
-  for(const k in m)m[k].total=m[k].earned+m[k].bonus+m[k].awarded;
+  for(const w of S.awards){if(!m[w.photographerId])continue;if(tri!=='all'&&(w.trimester||trimesterOf(w.at))!==tri)continue;m[w.photographerId].awarded+=Number(w.points)||0;m[w.photographerId].awards.push(w)}
+  for(const k in m){if(tri==='all')m[k].bonus=Number((pById(k)||{}).bonus)||0;m[k].total=m[k].earned+m[k].bonus+m[k].awarded}
   return m;
 }
 function weekRange(){return{from:iso(S.week),to:iso(addDays(S.week,6))}}
@@ -600,10 +627,11 @@ const canPrint=()=>MODE==='firebase';
 const VIEWS=[
   {id:'home',label:'Home',icon:'home'},
   {id:'assignments',label:'This week’s shoots',short:'Shoots',icon:'cal'},
-  {id:'points',label:'Points & roster',short:'Points',icon:'star'},
-  {id:'requests',label:'Request a club',short:'Requests',icon:'hand'},
-  {id:'clubs',label:'Club coverage',icon:'grid'},
-  {id:'email',label:'Send an email',icon:'mail',need:'manage',group:'Officers'},
+  {id:'points',label:'Leaderboard',short:'Points',icon:'star'},
+  {id:'requests',label:'Requests',icon:'hand'},
+  {id:'clubs',label:'Coverage',icon:'grid'},
+  {id:'roster',label:'Roster',icon:'list',need:'manage',group:'Officers'},
+  {id:'email',label:'Send an email',icon:'mail',need:'manage'},
   {id:'team',label:'Team & invites',icon:'users',need:'manage'},
   {id:'config',label:'Settings',icon:'gear',need:'admin'},
   {id:'help',label:'How to use this',icon:'help',group:'Help'}
@@ -653,7 +681,7 @@ function doRender(){
   if(S.preview)html+=`<div class="note warn">${I.info}<div style="flex:1"><b>You’re previewing what a Member sees.</b> Officer buttons are hidden. Your own shoots still work as normal.</div><button class="btn sm ink" data-act="preview">Stop previewing</button></div>`;
   const allLoaded=['assignments','photographers','roles'].every(c=>S.loaded.has(c));
   if(DB&&!allLoaded)html+=`<div class="loading"><div class="spin"></div>Loading…</div>`;
-  else html+=({home:vHome,assignments:vAssignments,points:vPoints,requests:vRequests,clubs:vClubs,email:vEmail,team:vTeam,config:vConfig,help:vHelp}[S.view])();
+  else html+=({home:vHome,assignments:vAssignments,points:vPoints,requests:vRequests,clubs:vClubs,roster:vRoster,email:vEmail,team:vTeam,config:vConfig,help:vHelp}[S.view])();
   main.innerHTML=html;main.dataset.view=S.view;
   if(aid){const el=document.getElementById(aid);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}
   if(S.view==='team')fillProfiles();
@@ -693,7 +721,7 @@ function vHome(){
     ${mp?`<div class="pointcard"><div class="v">${pm[mp].total}</div><div class="l"><b>Your points</b>${plural(pm[mp].shoots.length,'shoot')} credited${pm[mp].awarded?`, ${pm[mp].awarded>0?'+':''}${pm[mp].awarded} awarded`:''}${pm[mp].pending?`<br><span style="color:#C9BCF0">${pm[mp].pending} pending credit</span>`:''}</div></div>`:''}</div>`;
 
   if(r==='Guest'&&S.signedIn&&DB)h+=`<div class="note">${I.info}<div><b>You don’t have a team role yet.</b> If an officer sent you an invite link or QR code, open it to join. Until then you can look around.</div></div>`;
-  if(!mp&&r!=='Guest'&&S.photographers.length)h+=`<div class="note warn">${I.info}<div style="flex:1"><b>Which photographer are you?</b> Link your name so you can check in, mark shoots done and earn points.<div class="row" style="margin-top:10px;max-width:520px"><select id="linkme"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><button class="btn ink" data-act="linkMe" style="flex:none">Link my name</button></div></div></div>`;
+  if(!mp&&r!=='Guest'&&S.photographers.length)h+=`<div class="note warn">${I.info}<div style="flex:1"><b>Which photographer are you?</b> Link your name so you can check in, mark shoots done and earn points.<div class="row" style="margin-top:10px;max-width:520px"><select id="linkme"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(displayName(p.name))}</option>`).join('')}</select><button class="btn ink" data-act="linkMe" style="flex:none">Link my name</button></div></div></div>`;
 
   if(MODE==='firebase'&&S.me.isOwner&&!S.photographers.length&&!S.assignments.length)h+=`<div class="note good">${I.info}<div style="flex:1"><b>Your tracker is empty.</b> Import the roster, clubs and this week’s shoots from your spreadsheet in one click.<div style="margin-top:10px"><button class="btn ink" data-act="importSeed">Import spreadsheet data</button></div></div></div>`;
 
@@ -806,7 +834,7 @@ function contactSheet(list,mp,man,fno){
       const asked=mp&&S.requests.some(q=>q.photographerId===mp&&q.status==='pending'&&(q.assignmentId===a.id||(norm(q.club)===norm(a.club)&&q.date===a.date)));const canReq=!man&&mp&&!a.full&&st!=='done'&&st!=='review'&&!ps.includes(mp)&&!asked;
       const imIn=ps.includes(mp)&&!(a.checkins||{})[mp]&&!cState((a.completions||{})[mp]);
       return`<article class="frame s-${st}" aria-label="${esc(a.club)}"><span class="fno" title="Shoot ${fno[a.id]} this week">${pad(fno[a.id])}</span>
-        <div class="club">${esc(a.club)}</div>
+        <div class="club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</div>
         <div class="meta"><div>${I.clock}<span>${esc(timeRange(a))}</span></div>${a.location?`<div>${I.pin}<span>${esc(a.location)}</span></div>`:''}</div>
         ${a.task?`<div class="task">${esc(a.task)}</div>`:''}
         ${a.full?`<div class="flag">No more photographers needed</div>`:''}
@@ -821,7 +849,7 @@ function sheetHTML(list,mp,man){
   for(const a of list){
     if(a.date!==last){last=a.date;rows+=`<tr class="dayrow"><td colspan="9">${esc(fmtDay(a.date))}</td></tr>`}
     const st=aStatus(a),ps=a.photographers||[],drive=a.driveLink||clubByName(a.club)?.driveLink;
-    rows+=`<tr><td class="nowrap" data-l="Time">${esc(timeRange(a))}</td><td class="b" data-l="Club">${esc(a.club)}</td>
+    rows+=`<tr><td class="nowrap" data-l="Time">${esc(timeRange(a))}</td><td class="b" data-l="Club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</td>
       <td data-l="Photographers" style="min-width:250px">${ps.length?`<div style="display:flex;flex-direction:column;gap:4px">${ps.map(p=>personLine(a,p,mp,man)).join('')}</div>`:'<span class="muted">N/A</span>'}</td>
       <td data-l="Location">${esc(a.location||'')}</td><td data-l="Status"><span class="st ${st}">${ST_LABEL[st]}</span></td>
       <td data-l="Task" style="min-width:200px">${esc(a.task||'')}</td><td data-l="Notes" style="max-width:240px">${a.full?'<b style="color:var(--crimson)">No more photographers needed.</b> ':''}${esc(a.notes||'')}</td>
@@ -833,7 +861,7 @@ function sheetHTML(list,mp,man){
 
 function photographerPicker(selected,name='ps'){
   const sel=new Set(selected||[]);
-  const opts=sortByName(S.photographers).map(p=>`<label data-n="${esc(norm(p.name+' '+displayName(p.name)))}"><input type="checkbox" name="${name}" value="${p.id}" ${sel.has(p.id)?'checked':''}> ${esc(p.name)}</label>`).join('');
+  const opts=sortByName(S.photographers).map(p=>`<label data-n="${esc(norm(p.name+' '+displayName(p.name)))}"><input type="checkbox" name="${name}" value="${p.id}" ${sel.has(p.id)?'checked':''}> ${esc(displayName(p.name))}</label>`).join('');
   return`<div class="picker" data-picker><div class="sel chips" data-selrow></div><input type="search" class="pq" placeholder="Search ${S.photographers.length} photographers" aria-label="Search photographers"><div class="opts">${opts||'<p class="help" style="padding:8px">No photographers yet. Add them on the Points & roster page.</p>'}</div></div>`;
 }
 function wirePicker(root,emptyText){
@@ -848,7 +876,9 @@ function openAssignmentForm(a){
   const isNew=!a;a=a||{date:iso(S.week>new Date()?S.week:new Date()),start:'15:00',end:'16:00',photographers:[]};
   openModal({title:isNew?'Add a shoot':'Edit shoot',wide:true,body:`
     <form id="af" onsubmit="return false">
-      <div class="row"><div class="field"><label class="f" for="af-club">Club</label><input id="af-club" type="text" name="club" list="clubs-dl" value="${esc(a.club||'')}" placeholder="Start typing a club" required>${clubDatalist()}</div>
+      <div class="row"><div class="field"><span class="f" style="display:block;margin-bottom:6px">Type</span><div class="seg" id="af-type">${TYPES.map(t=>`<button type="button" class="${(a.type||'club')===t.id?'on':''}" data-t="${t.id}">${t.label}</button>`).join('')}</div><input type="hidden" name="type" id="af-typev" value="${esc(a.type||'club')}"></div>
+      <div class="field"><label class="f" for="af-tri">Trimester</label><select id="af-tri" name="trimester">${TRI.map(t=>`<option value="${t.id}" ${(a.trimester||trimesterOf(a.date))===t.id?'selected':''}>${t.label} (${t.t})</option>`).join('')}</select></div></div>
+      <div class="row"><div class="field"><label class="f" for="af-club" id="af-club-lbl">${(a.type||'club')==='sport'?'Team / sport':(a.type||'club')==='event'?'Event':'Club'}</label><input id="af-club" type="text" name="club" list="clubs-dl" value="${esc(a.club||'')}" placeholder="Start typing" required>${clubDatalist()}</div>
       <div class="field"><label class="f" for="af-date">Date</label><input id="af-date" type="date" name="date" value="${esc(a.date)}" required></div></div>
       <div class="row"><div class="field"><label class="f" for="af-s">Starts</label><input id="af-s" type="time" name="start" value="${esc(a.start||'')}"></div>
       <div class="field"><label class="f" for="af-e">Ends</label><input id="af-e" type="time" name="end" value="${esc(a.end||'')}"></div>
@@ -859,14 +889,21 @@ function openAssignmentForm(a){
       <div class="row"><div class="field"><label class="f" for="af-drive">Google Drive link</label><input id="af-drive" type="url" name="driveLink" value="${esc(a.driveLink||'')}" placeholder="Leave blank to use the club’s folder"></div>
       <div class="field" style="display:flex;align-items:flex-end"><label class="check"><input type="checkbox" name="full" ${a.full?'checked':''}> No more photographers needed</label></div></div>
     </form>`,
-    onOpen:r=>wirePicker(r),
+    onOpen:r=>{wirePicker(r);
+      const typev=$('#af-typev',r),lbl=$('#af-club-lbl',r),triSel=$('#af-tri',r),dateIn=$('#af-date',r);let triTouched=false;
+      triSel.addEventListener('change',()=>{triTouched=true});
+      dateIn.addEventListener('change',()=>{if(!triTouched)triSel.value=trimesterOf(dateIn.value)});
+      $('#af-type',r).addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;$$('#af-type button',r).forEach(x=>x.classList.toggle('on',x===b));typev.value=b.dataset.t;lbl.textContent=b.dataset.t==='sport'?'Team / sport':b.dataset.t==='event'?'Event':'Club'});
+    },
     actions:[{label:'Cancel'},{label:isNew?'Add shoot':'Save changes',cls:'pri',onClick:async()=>{
       const fd=new FormData($('#af'));
       const club=String(fd.get('club')||'').trim(),date=String(fd.get('date')||'');
-      if(!club||!date){toast('Add a club and a date.','err');return false}
+      if(!club||!date){toast('Add a name and a date.','err');return false}
+      const type=String(fd.get('type')||'club'),trimester=String(fd.get('trimester')||trimesterOf(date));
       const ps=fd.getAll('ps');const prev=a.completions||{};const completions={};for(const p of ps)if(prev[p])completions[p]=prev[p];
       const pc=a.checkins||{};const checkins={};for(const p of ps)if(pc[p])checkins[p]=pc[p];
-      const data={date,start:String(fd.get('start')||''),end:String(fd.get('end')||''),club,location:String(fd.get('location')||'').trim(),task:String(fd.get('task')||'').trim(),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim(),full:fd.get('full')==='on',photographers:ps,completions,checkins,updatedAt:nowISO()};
+      const data={date,start:String(fd.get('start')||''),end:String(fd.get('end')||''),club,type,trimester,location:String(fd.get('location')||'').trim(),task:String(fd.get('task')||'').trim(),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim(),full:fd.get('full')==='on',photographers:ps,completions,checkins,updatedAt:nowISO()};
+      if(!clubByName(club))await W(()=>DB.collection('clubs').add({name:club,type,status:'No photos',notes:'',driveLink:''}));
       if(isNew){data.createdAt=nowISO();data.createdBy=S.me.id||'';return await W(()=>DB.collection('assignments').add(data),'Shoot added')}
       const full=Object.assign(clone(a),data);delete full.id;
       return await W(()=>DB.doc('assignments/'+a.id).set(full),'Changes saved');
@@ -953,7 +990,7 @@ async function copyWeekForward(){
   const next=addDays(S.week,7);
   if(!await confirmBox('Copy to next week',`Copy all ${plural(wk.length,'shoot')} to the week of <b>${esc(fmtLong(next))}</b>? Clubs, times, places and tasks carry over. Photographers and completions start empty.`,'Copy '+plural(wk.length,'shoot'),'pri'))return;
   let n=0;
-  for(const a of wk){const d=parseISO(a.date);const data={date:iso(addDays(d,7)),start:a.start||'',end:a.end||'',club:a.club,location:a.location||'',task:a.task||'',notes:'',driveLink:a.driveLink||'',full:false,photographers:[],completions:{},checkins:{},createdAt:nowISO(),createdBy:S.me.id||''};
+  for(const a of wk){const d=parseISO(a.date);const data={date:iso(addDays(d,7)),start:a.start||'',end:a.end||'',club:a.club,type:a.type||'club',trimester:trimesterOf(iso(addDays(d,7))),location:a.location||'',task:a.task||'',notes:'',driveLink:a.driveLink||'',full:false,photographers:[],completions:{},checkins:{},createdAt:nowISO(),createdBy:S.me.id||''};
     if(await W(()=>DB.collection('assignments').add(data)))n++}
   S.week=next;toast(`Copied ${plural(n,'shoot')} to next week`);render();
 }
@@ -978,7 +1015,7 @@ function openCheckin(id){
   const mp=myPid(),ps=a.photographers||[];
   const head=`<div style="margin-bottom:16px"><div class="num" style="font-size:34px;line-height:1">${esc(a.club)}</div><div class="muted">${esc(fmtDay(a.date))}, ${esc(timeRange(a))}${a.location?', '+esc(a.location):''}</div>${a.task?`<p style="margin:10px 0 0">${esc(a.task)}</p>`:''}</div>`;
   if(!mp){
-    openModal({title:'Check in',body:head+`<div class="note warn">${I.info}<div>Link your name first so we know who’s checking in.</div></div><div class="field"><label class="f" for="ck-p">Which photographer are you?</label><select id="ck-p"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>`,
+    openModal({title:'Check in',body:head+`<div class="note warn">${I.info}<div>Link your name first so we know who’s checking in.</div></div><div class="field"><label class="f" for="ck-p">Which photographer are you?</label><select id="ck-p"><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(displayName(p.name))}</option>`).join('')}</select></div>`,
       actions:[{label:'Cancel'},{label:'Link and check in',cls:'pri',onClick:async()=>{const pid=$('#ck-p').value;if(!pid){toast('Choose your name.','err');return false}const ok=await linkMe(pid);if(ok===false)return false;setTimeout(()=>openCheckin(id),300);}}]});return;
   }
   if(!ps.includes(mp)){
@@ -995,28 +1032,44 @@ function leaderboardHTML(list,pm){
   return`<ol class="lb">${list.map((p,i)=>`<li><span class="rk">${i+1}</span><span class="nm">${esc(displayName(p.name))}</span><span class="pt">${pm[p.id].total}</span><span class="bar"><i style="width:${Math.max(0,pm[p.id].total)/max*100}%"></i></span></li>`).join('')}</ol>`;
 }
 function vPoints(){
-  const man=canManage(),pm=pointsMap(),mp=myPid(),q=norm(S.f.phQ);
-  const ranked=S.photographers.filter(p=>pm[p.id].total>0).sort((a,b)=>pm[b.id].total-pm[a.id].total||a.name.localeCompare(b.name));
-  const list=sortByName(S.photographers).filter(p=>(!S.f.noEmail||!p.email)&&(!q||norm(p.name+' '+displayName(p.name)).includes(q)||(man&&norm(p.email).includes(q))));
+  const man=canManage(),mp=myPid();
+  const scope=S.f.pointsScope==='year'?'all':S.trimester;
+  const pm=pointsMap(scope);
+  const scored=S.photographers.filter(p=>pm[p.id].total>0).sort((a,b)=>pm[b.id].total-pm[a.id].total||a.name.localeCompare(b.name));
+  const feed=[...S.awards].filter(w=>scope==='all'||(w.trimester||trimesterOf(w.at))===scope).sort((a,b)=>(b.at||'').localeCompare(a.at||'')).slice(0,10);
+  const totalPts=Object.values(pm).reduce((x,y)=>x+y.total,0),totalShoots=Object.values(pm).reduce((x,y)=>x+y.shoots.length,0);
+  const myRank=mp?scored.findIndex(p=>p.id===mp):-1;
+  const scopeName=scope==='all'?'all year':TRI_LABEL[S.trimester];
+  return `
+  <div class="ph"><div class="t"><h1>Leaderboard</h1><p class="lede">Photographers earn ${plural(ppc(),'point')} for every shoot an officer credits. Showing <b>${esc(scopeName)}</b>.</p></div>
+  ${man?`<button class="btn pri" data-act="award">${I.medal} Award points</button>`:''}</div>
+  ${triBar(true)}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    <div class="panel" style="padding:14px 16px"><div class="muted small">Points ${scope==='all'?'this year':'this trimester'}</div><div class="num" style="font-size:34px;color:var(--gold)">${totalPts}</div></div>
+    <div class="panel" style="padding:14px 16px"><div class="muted small">Shoots credited</div><div class="num" style="font-size:34px">${totalShoots}</div></div>
+    <div class="panel" style="padding:14px 16px"><div class="muted small">On the board</div><div class="num" style="font-size:34px">${scored.length}</div></div>
+    ${mp?`<div class="panel" style="padding:14px 16px;background:var(--ink);color:#fff"><div class="small" style="color:#C9C8D0">Your points</div><div class="num" style="font-size:34px;color:var(--gold-bright)">${pm[mp].total}</div>${myRank>=0?`<div class="small" style="color:#C9C8D0">#${myRank+1} of ${scored.length}${pm[mp].pending?`, ${pm[mp].pending} pending`:''}</div>`:pm[mp].pending?`<div class="small" style="color:#C9C8D0">${pm[mp].pending} pending credit</div>`:''}</div>`:''}
+  </div>
+  <section class="panel tight"><div class="panel-h"><h2>Rankings</h2><span class="muted small">${esc(S.settings.schoolYear||'2026–27')}</span></div>
+  ${scored.length?leaderboardHTML(scored,pm):`<div class="empty"><strong>No points ${scope==='all'?'yet':'this trimester'}</strong>The first shoot an officer credits puts someone on the board.</div>`}</section>
+  ${feed.length?`<section class="panel tight" style="margin-top:20px"><div class="panel-h"><h2>Recent awards</h2></div><ul class="feed">${feed.map(w=>`<li><span class="amt ${w.points<0?'neg':''}">${w.points>0?'+':''}${esc(w.points)}</span><div class="tx"><b>${esc(displayName(pName(w.photographerId)))}</b><span class="muted">${esc(w.reason||'No reason given')}, ${esc(ago(w.at))}</span></div>${man?`<button class="ibtn" aria-label="Remove award" data-act="delAward" data-id="${w.id}">${I.trash}</button>`:''}</li>`).join('')}</ul></section>`:''}`;
+}
+function vRoster(){
+  const man=canManage();if(!man)return '';
+  const pm=pointsMap('all'),mp=myPid(),q=norm(S.f.rosterQ);
   const withEmail=S.photographers.filter(p=>p.email).length;
-  const feed=[...S.awards].sort((a,b)=>(b.at||'').localeCompare(a.at||'')).slice(0,8);
+  const list=sortByName(S.photographers).filter(p=>(!S.f.noEmail||!p.email)&&(!q||norm(p.name+' '+displayName(p.name)).includes(q)||norm(p.email).includes(q)));
   const rows=list.map(p=>{const x=pm[p.id];return`<tr>
-    <td data-l="Name"><div class="pl">${avatarHTML(p.name)}<div class="grow"><div class="nm">${esc(p.name)}${p.id===mp?' (you)':''}</div>${man?`<div class="sub">${p.email?esc(p.email):'<span style="color:var(--crimson)">No email yet</span>'}</div>`:''}</div></div></td>
+    <td data-l="Name"><div class="pl">${avatarHTML(p.name)}<div class="grow"><div class="nm">${esc(displayName(p.name))}${p.id===mp?' (you)':''}</div><div class="sub">${p.email?esc(p.email):'<span style="color:var(--crimson)">No email yet</span>'}</div></div></div></td>
     <td data-l="Shoots done" class="num" style="font-size:20px">${x.shoots.length}</td>
     <td data-l="Points" class="num" style="font-size:22px;color:var(--gold)">${x.total}</td>
-    <td class="act"><button class="btn sm" data-act="phHist" data-id="${p.id}">History</button>${man?` <button class="btn sm gold" data-act="award" data-id="${p.id}">${I.medal} Award</button><button class="ibtn" aria-label="Edit ${esc(p.name)}" data-act="phEdit" data-id="${p.id}">${I.pen}</button><button class="ibtn" aria-label="Remove ${esc(p.name)}" data-act="phDel" data-id="${p.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
-  return`
-  <div class="ph"><div class="t"><h1>Points & roster</h1><p class="lede">Photographers earn ${plural(ppc(),'point')} for every shoot they mark done. Officers can also award points by hand for extra work.</p></div>
-  ${man?`<button class="btn" data-act="phBulk">${I.list} Add names and emails</button><button class="btn" data-act="phNew">${I.plus} Add one person</button><button class="btn pri" data-act="award">${I.medal} Award points</button>`:''}</div>
-  <div class="grid-side">
-    ${man&&S.photographers.length?`<div class="note ${withEmail<S.photographers.length?'warn':'good'}">${I.mail}<div style="flex:1"><b>${withEmail} of ${S.photographers.length} have an email,</b> so they get team emails. ${withEmail<S.photographers.length?`<a href="#" data-act="noEmail">${S.f.noEmail?'Show everyone':'Show who’s missing one'}</a> or <a href="#" data-act="phBulk">paste a list of emails</a>.`:''}</div><button class="btn sm" data-act="copyEmails">${I.copy} Copy all emails</button></div>`:''}
-    <section class="sheet"><div class="sheet-cap"><b>Roster</b><span class="muted small">${plural(S.photographers.length,'photographer')}</span><div class="search" style="min-width:220px">${I.search}<input id="pq" type="search" placeholder="${man?'Search names or emails':'Search names'}" value="${esc(S.f.phQ)}" data-in="phQ" aria-label="Search roster"></div></div>
-      ${list.length?`<table class="stack"><thead><tr><th>Name</th><th>Shoots done</th><th>Points</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>${S.photographers.length?'Nobody matches that search':'No photographers yet'}</strong>${man&&!S.photographers.length?`Paste your members list with emails to add everyone at once.<br><button class="btn pri" data-act="phBulk">Add names and emails</button>`:''}</div>`}</section>
-    <div style="display:flex;flex-direction:column;gap:20px">
-      <section class="panel tight"><div class="panel-h"><h2>Leaderboard</h2><span class="muted small">${esc(S.settings.schoolYear||'2026–27')}</span></div>${ranked.length?leaderboardHTML(ranked.slice(0,15),pm):'<div class="empty"><strong>No points yet</strong>The first shoot marked done will put someone on the board.</div>'}</section>
-      <section class="panel tight"><div class="panel-h"><h2>Recent awards</h2></div>${feed.length?`<ul class="feed">${feed.map(w=>`<li><span class="amt ${w.points<0?'neg':''}">${w.points>0?'+':''}${esc(w.points)}</span><div class="tx"><b>${esc(displayName(pName(w.photographerId)))}</b><span class="muted">${esc(w.reason||'No reason given')}, ${esc(ago(w.at))}</span></div>${man?`<button class="ibtn" aria-label="Remove award" data-act="delAward" data-id="${w.id}">${I.trash}</button>`:''}</li>`).join('')}</ul>`:`<div class="empty"><strong>No awards yet</strong>${man?'Use Award points for extra events, great edits, or last-minute coverage.':''}</div>`}</section>
-    </div>
-  </div>`;
+    <td class="act"><button class="btn sm" data-act="phHist" data-id="${p.id}">History</button> <button class="btn sm gold" data-act="award" data-id="${p.id}">${I.medal} Award</button><button class="ibtn" aria-label="Edit" data-act="phEdit" data-id="${p.id}">${I.pen}</button><button class="ibtn" aria-label="Remove" data-act="phDel" data-id="${p.id}">${I.trash}</button></td></tr>`}).join('');
+  return `
+  <div class="ph"><div class="t"><h1>Roster</h1><p class="lede">The full photographer list, for officers only. Add everyone’s email here so they get team emails.</p></div>
+  <button class="btn" data-act="phBulk">${I.list} Add names and emails</button><button class="btn" data-act="phNew">${I.plus} Add one person</button></div>
+  ${S.photographers.length?`<div class="note ${withEmail<S.photographers.length?'warn':'good'}">${I.mail}<div style="flex:1"><b>${withEmail} of ${S.photographers.length} have an email,</b> so they get team emails. ${withEmail<S.photographers.length?`<a href="#" data-act="noEmail">${S.f.noEmail?'Show everyone':'Show who’s missing one'}</a> or <a href="#" data-act="phBulk">paste a list</a>.`:''}</div><button class="btn sm" data-act="copyEmails">${I.copy} Copy all emails</button></div>`:''}
+  <section class="sheet"><div class="sheet-cap"><b>Photographers</b><span class="muted small">${plural(S.photographers.length,'person','people')}</span><div class="search" style="min-width:220px">${I.search}<input id="rq" type="search" placeholder="Search names or emails" value="${esc(S.f.rosterQ)}" data-in="rosterQ" aria-label="Search roster"></div></div>
+  ${list.length?`<table class="stack"><thead><tr><th>Name</th><th>Shoots done</th><th>Points</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>${S.photographers.length?'Nobody matches that search':'No photographers yet'}</strong>${!S.photographers.length?`Paste your members list with emails.<br><button class="btn pri" data-act="phBulk">Add names and emails</button>`:''}</div>`}</section>`;
 }
 function openAward(preIds){
   let amt=1,sign=1;
@@ -1046,7 +1099,7 @@ function openAward(preIds){
       const g=got||{ids:$$('[data-picker] input:checked').map(i=>i.value),amt:1,sign:1};
       if(!g.ids.length){toast('Pick at least one photographer.','err');return false}
       const reason=$('#aw-r').value.trim();let n=0;
-      for(const pid of g.ids){if(await W(()=>DB.collection('awards').add({photographerId:pid,points:g.sign*g.amt,reason,at:nowISO(),by:S.me.id||''})))n++}
+      for(const pid of g.ids){if(await W(()=>DB.collection('awards').add({photographerId:pid,points:g.sign*g.amt,reason,trimester:S.trimester,at:nowISO(),by:S.me.id||''})))n++}
       if(n)toast(`${g.sign>0?'Awarded':'Took away'} ${g.amt} ${g.amt===1?'point':'points'} ${g.sign>0?'to':'from'} ${n===1?displayName(pName(g.ids[0])):n+' photographers'}`,'gold');
     }}]});
   const root=$('#modal-root');const inner=$('.mb',root);
@@ -1116,7 +1169,7 @@ function vRequests(){
   <div class="grid2" style="grid-template-columns:minmax(0,420px) minmax(0,1fr)">
     <section class="panel"><h2>New request</h2>
       <form id="rqf" onsubmit="return false" style="margin-top:14px">
-        <div class="field"><label class="f" for="rq-p">Your name</label><select id="rq-p" name="pid" required><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(p.name)}</option>`).join('')}</select><p class="help">Not listed? Ask an officer to add you to the roster.</p></div>
+        <div class="field"><label class="f" for="rq-p">Your name</label><select id="rq-p" name="pid" required><option value="">Choose your name…</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(displayName(p.name))}</option>`).join('')}</select><p class="help">Not listed? Ask an officer to add you to the roster.</p></div>
         <div class="field"><label class="f" for="rq-c">Club</label><input id="rq-c" type="text" name="club" list="clubs-dl" required placeholder="Start typing a club">${clubDatalist()}</div>
         <div class="field"><label class="f" for="rq-d">Meeting date</label><input id="rq-d" type="date" name="date" required></div>
         <div class="field"><label class="f" for="rq-n">Anything officers should know?</label><input id="rq-n" type="text" name="note" placeholder="Optional"></div>
@@ -1148,48 +1201,53 @@ async function approveRequest(r){
 
 /* ---------- View: Clubs ---------- */
 const COVER={'Enough Photos':['Fully covered','done'],'Has Photos':['Has some photos','gold'],'No photos':['No photos yet','open']};
-function clubStats(){
+function clubStats(tri){
   const m={};const t=todayISO();
-  for(const a of S.assignments){const c=norm(a.club);if(!c)continue;m[c]=m[c]||{shoots:0,last:null,upcoming:0};
-    if(Object.keys(a.completions||{}).length){m[c].shoots++;if(!m[c].last||a.date>m[c].last)m[c].last=a.date}
+  for(const a of S.assignments){if(tri&&aTri(a)!==tri)continue;const c=norm(a.club);if(!c)continue;m[c]=m[c]||{shoots:0,last:null,upcoming:0};
+    if(Object.values(a.completions||{}).some(isCredited)){m[c].shoots++;if(!m[c].last||a.date>m[c].last)m[c].last=a.date}
     if(a.date>=t)m[c].upcoming++}
   return m;
 }
 function vClubs(){
-  const man=canManage(),cs=clubStats(),q=norm(S.f.clubQ);
-  const tot=S.clubs.length,full=S.clubs.filter(c=>c.status==='Enough Photos').length,has=S.clubs.filter(c=>c.status==='Has Photos').length,none=tot-full-has;
-  const order={'No photos':0,'Has Photos':1,'Enough Photos':2};
-  const list=S.clubs.filter(c=>(S.f.clubFilter==='all'||(COVER[c.status||'No photos']||COVER['No photos'])[1]===S.f.clubFilter)&&(!q||norm(c.name).includes(q)||norm(c.notes).includes(q)))
+  const man=canManage(),tab=S.f.coverTab||'club',cs=clubStats(S.trimester),q=norm(S.f.clubQ);
+  const all=subjectsOfType(tab);
+  const tot=all.length,full=all.filter(c=>c.status==='Enough Photos').length,has=all.filter(c=>c.status==='Has Photos').length,none=tot-full-has;
+  const tName=TYPES.find(t=>t.id===tab).label;
+  const list=all.filter(c=>(S.f.clubFilter==='all'||(COVER[c.status||'No photos']||COVER['No photos'])[1]===S.f.clubFilter)&&(!q||norm(c.name).includes(q)||norm(c.notes).includes(q)))
     .sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
   const today=new Date();
   const rows=list.map(c=>{const st=c.status||'No photos',[cov,cls]=COVER[st]||COVER['No photos'],s=cs[norm(c.name)]||{shoots:0,last:null,upcoming:0};
     const days=s.last?Math.floor((today-parseISO(s.last))/864e5):null;
-    return`<tr><td class="b" data-l="Club">${esc(c.name)}${c.notes?`<div class="muted small" style="font-weight:400">${esc(c.notes)}</div>`:''}</td>
-      <td data-l="Coverage">${man?`<select data-act="clubStatus" data-id="${c.id}" aria-label="Coverage for ${esc(c.name)}" style="width:auto;min-height:34px;padding:4px 8px">${['No photos','Has Photos','Enough Photos'].map(o=>`<option value="${o}" ${o===st?'selected':''}>${COVER[o][0]}</option>`).join('')}</select>`:`<span class="st ${cls}">${cov}</span>`}</td>
-      <td data-l="Shoots done" class="num" style="font-size:19px">${s.shoots}${s.upcoming?` <span class="muted small" style="font-family:var(--body);font-weight:400">${s.upcoming} coming up</span>`:''}</td>
-      <td data-l="Last photographed">${s.last?`${esc(fmtShort(s.last))}<div class="muted small">${days<=0?'today':plural(days,'day')+' ago'}</div>`:'<span class="muted">Never on the tracker</span>'}</td>
+    return`<tr><td class="b" data-l="${esc(tName)}">${esc(c.name)}${c.notes?`<div class="muted small" style="font-weight:400">${esc(c.notes)}</div>`:''}</td>
+      <td data-l="Coverage">${man?`<select data-act="clubStatus" data-id="${c.id}" aria-label="Coverage" style="width:auto;min-height:34px;padding:4px 8px">${['No photos','Has Photos','Enough Photos'].map(o=>`<option value="${o}" ${o===st?'selected':''}>${COVER[o][0]}</option>`).join('')}</select>`:`<span class="st ${cls}">${cov}</span>`}</td>
+      <td data-l="Shoots this trimester" class="num" style="font-size:19px">${s.shoots}${s.upcoming?` <span class="muted small" style="font-family:var(--body);font-weight:400">${s.upcoming} coming up</span>`:''}</td>
+      <td data-l="Last photographed">${s.last?`${esc(fmtShort(s.last))}<div class="muted small">${days<=0?'today':plural(days,'day')+' ago'}</div>`:'<span class="muted">Not this trimester</span>'}</td>
       <td data-l="Drive">${c.driveLink?`<a href="${esc(c.driveLink)}" target="_blank" rel="noopener">Folder</a>`:'<span class="muted">None</span>'}</td>
-      <td class="act">${man?`<button class="ibtn" aria-label="Edit ${esc(c.name)}" data-act="editClub" data-id="${c.id}">${I.pen}</button><button class="ibtn" aria-label="Delete ${esc(c.name)}" data-act="delClub" data-id="${c.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
+      <td class="act">${man?`<button class="ibtn" aria-label="Edit" data-act="editClub" data-id="${c.id}">${I.pen}</button><button class="ibtn" aria-label="Delete" data-act="delClub" data-id="${c.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
   return`
-  <div class="ph"><div class="t"><h1>Club coverage</h1><p class="lede">Every club from A to Z. Use the filters to see which ones still need photos. Shoot counts and dates update when photographers mark shoots done.</p></div>${man?`<button class="btn pri" data-act="newClub">${I.plus} Add a club</button>`:''}</div>
+  <div class="ph"><div class="t"><h1>Coverage</h1><p class="lede">Which clubs, sports and events have been photographed. Counts are for the trimester you pick.</p></div>${man?`<button class="btn pri" data-act="newClub">${I.plus} Add ${tName.toLowerCase()}</button>`:''}</div>
+  ${triBar(false)}
+  <div class="tabs">${TYPES.map(t=>`<button class="${tab===t.id?'on':''}" data-act="coverTab" data-v="${t.id}">${t.plural} (${subjectsOfType(t.id).length})</button>`).join('')}</div>
   <div class="progress"><div class="big">${tot?Math.round(full/tot*100):0}<span>%</span></div><div class="segbar">${[['done',full],['gold',has],['open',none]].map(([k,n])=>n?`<i style="width:${n/tot*100}%;background:${k==='gold'?'var(--gold-bright)':'var(--c-'+k+')'}"></i>`:'').join('')}</div>
-    <div class="legend"><span><i style="background:var(--c-done)"></i>${full} fully covered</span><span><i style="background:var(--gold-bright)"></i>${has} have some photos</span><span><i style="background:var(--c-open)"></i>${none} have none</span><span class="muted">${plural(tot,'club')}</span></div></div>
+    <div class="legend"><span><i style="background:var(--c-done)"></i>${full} fully covered</span><span><i style="background:var(--gold-bright)"></i>${has} have some</span><span><i style="background:var(--c-open)"></i>${none} have none</span><span class="muted">${plural(tot,tName.toLowerCase())}</span></div></div>
   <div class="toolbar"><div class="seg">${[['all','All'],['open','No photos'],['gold','Some photos'],['done','Fully covered']].map(([k,l])=>`<button class="${S.f.clubFilter===k?'on':''}" data-act="cfilter" data-v="${k}">${l}</button>`).join('')}</div>
-    <div class="search">${I.search}<input id="cq" type="search" placeholder="Search clubs" value="${esc(S.f.clubQ)}" data-in="clubQ" aria-label="Search clubs"></div></div>
-  <section class="sheet">${list.length?`<table class="stack"><thead><tr><th>Club</th><th>Coverage</th><th>Shoots done</th><th>Last photographed</th><th>Drive</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>${tot?'No clubs match':'No clubs yet'}</strong></div>`}</section>`;
+    <div class="search">${I.search}<input id="cq" type="search" placeholder="Search ${tName.toLowerCase()}s" value="${esc(S.f.clubQ)}" data-in="clubQ" aria-label="Search"></div></div>
+  <section class="sheet">${list.length?`<table class="stack"><thead><tr><th>${esc(tName)}</th><th>Coverage</th><th>Shoots</th><th>Last photographed</th><th>Drive</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty"><strong>No ${tName.toLowerCase()}s ${tot?'match':'yet'}</strong>${man&&!tot?`Add one, or post a ${tName.toLowerCase()} shoot and it shows up here.`:''}</div>`}</section>`;
 }
 function openClubForm(c){
-  const isNew=!c;c=c||{status:'No photos'};
-  openModal({title:isNew?'Add a club':'Edit club',body:`<form id="cf" onsubmit="return false">
-    <div class="field"><label class="f" for="cf-n">Club name</label><input id="cf-n" type="text" name="name" value="${esc(c.name||'')}" required></div>
+  const isNew=!c;const defType=S.f.coverTab||'club';c=c||{status:'No photos',type:defType};
+  const tl=TYPE_LABEL[c.type||'club'];
+  openModal({title:isNew?'Add '+tl.toLowerCase():'Edit '+tl.toLowerCase(),body:`<form id="cf" onsubmit="return false">
+    <div class="field"><label class="f" for="cf-n">Name</label><input id="cf-n" type="text" name="name" value="${esc(c.name||'')}" required></div>
+    <div class="field"><label class="f" for="cf-t">Type</label><select id="cf-t" name="type">${TYPES.map(t=>`<option value="${t.id}" ${(c.type||'club')===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div>
     <div class="field"><label class="f" for="cf-s">Coverage</label><select id="cf-s" name="status">${['No photos','Has Photos','Enough Photos'].map(o=>`<option value="${o}" ${o===c.status?'selected':''}>${COVER[o][0]}</option>`).join('')}</select></div>
     <div class="field"><label class="f" for="cf-no">Notes</label><input id="cf-no" type="text" name="notes" value="${esc(c.notes||'')}" placeholder="Only cover important events"></div>
     <div class="field"><label class="f" for="cf-d">Google Drive folder</label><input id="cf-d" type="url" name="driveLink" value="${esc(c.driveLink||'')}"></div></form>`,
-    actions:[{label:'Cancel'},{label:isNew?'Add club':'Save changes',cls:'pri',onClick:async()=>{
-      const fd=new FormData($('#cf'));const name=String(fd.get('name')||'').trim();if(!name){toast('Add a club name.','err');return false}
-      if(isNew&&clubByName(name)){toast('That club is already listed.','err');return false}
-      const data={name,status:fd.get('status'),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim()};
-      return isNew?await W(()=>DB.collection('clubs').add(data),'Club added'):await W(()=>DB.doc('clubs/'+c.id).update(data),'Changes saved');
+    actions:[{label:'Cancel'},{label:isNew?'Add':'Save changes',cls:'pri',onClick:async()=>{
+      const fd=new FormData($('#cf'));const name=String(fd.get('name')||'').trim();if(!name){toast('Add a name.','err');return false}
+      if(isNew&&clubByName(name)){toast('That name is already listed.','err');return false}
+      const data={name,type:String(fd.get('type')||'club'),status:fd.get('status'),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim()};
+      return isNew?await W(()=>DB.collection('clubs').add(data),tl+' added'):await W(()=>DB.doc('clubs/'+c.id).update(data),'Changes saved');
     }}]});
 }
 
@@ -1348,7 +1406,7 @@ function vTeam(){
     <h2>How to invite</h2><div class="seg" style="margin:10px 0 16px"><button class="${S.inviteMethod==='email'?'on':''}" data-act="invMethod" data-v="email">By email</button><button class="${S.inviteMethod==='link'?'on':''}" data-act="invMethod" data-v="link">Link or QR code</button></div>
     ${S.inviteMethod==='email'?`
       <div class="field"><label class="f" for="inv-emails">Email addresses</label><textarea id="inv-emails" style="min-height:96px" placeholder="One or more, separated by commas or new lines"></textarea><p class="help">When they sign in with that email, they get the ${esc(S.inviteRole)} role automatically.</p></div>
-      <div class="field"><label class="f" for="inv-pid">Which photographer is this? <span class="muted" style="font-weight:400">(only for one email)</span></label><select id="inv-pid"><option value="">Not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>
+      <div class="field"><label class="f" for="inv-pid">Which photographer is this? <span class="muted" style="font-weight:400">(only for one email)</span></label><select id="inv-pid"><option value="">Not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}">${esc(displayName(p.name))}</option>`).join('')}</select></div>
       <button class="btn pri lg" data-act="invEmail">${relay?I.send+' Send '+esc(S.inviteRole)+' invite':I.mail+' Create '+esc(S.inviteRole)+' invite'}</button>`
     :`
       <div class="row"><div class="field"><label class="f" for="inv-exp">Link works for</label><select id="inv-exp"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="0">Until I turn it off</option></select></div>
@@ -1365,10 +1423,10 @@ function vTeam(){
   ${tab==='members'?`
   <section class="sheet"><table class="stack"><thead><tr><th>Person</th><th>Role</th><th>Photographer</th><th>Joined</th><th><span class="sr">Actions</span></th></tr></thead><tbody>
     <tr><td data-l="Person"><div class="pl"><img class="av" data-uav="owner" alt=""><div class="grow"><div class="nm">Tracker owner${S.me.isOwner?' (you)':''}</div><div class="sub">Always an Admin</div></div></div></td><td data-l="Role"><span class="rb Admin">Admin</span></td>
-      <td data-l="Photographer">${S.me.isOwner?`<select data-act="setOwnLink" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px" aria-label="Your photographer name"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${myPid()===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`:'<span class="muted">Not shown</span>'}</td><td></td><td></td></tr>
+      <td data-l="Photographer">${S.me.isOwner?`<select data-act="setOwnLink" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px" aria-label="Your photographer name"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${myPid()===p.id?'selected':''}>${esc(displayName(p.name))}</option>`).join('')}</select>`:'<span class="muted">Not shown</span>'}</td><td></td><td></td></tr>
     ${roles.map(r=>{const can=admin||(canManage()&&r.role==='Member');return`<tr><td data-l="Person"><div class="pl"><img class="av" data-uav="${esc(r.id)}" alt="" style="width:28px;height:28px;border-radius:50%"><div class="grow"><div class="nm" data-uid="${esc(r.id)}">${r.id===S.me.id?'You':'Team member'}</div><div class="sub">${esc(r.email||'')}</div></div></div></td>
       <td data-l="Role">${can&&r.id!==S.me.id?`<select data-act="setRole" data-id="${esc(r.id)}" aria-label="Role" style="width:auto;min-height:34px;padding:4px 8px">${(admin?['Admin','Manager','Member']:['Member']).map(x=>`<option ${x===r.role?'selected':''}>${x}</option>`).join('')}</select>`:`<span class="rb ${esc(r.role)}">${esc(r.role)}</span>`}</td>
-      <td data-l="Photographer">${can?`<select data-act="setLink" data-id="${esc(r.id)}" aria-label="Photographer" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${r.photographerId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`:esc(r.photographerId?pName(r.photographerId):'None')}</td>
+      <td data-l="Photographer">${can?`<select data-act="setLink" data-id="${esc(r.id)}" aria-label="Photographer" style="width:auto;max-width:230px;min-height:34px;padding:4px 8px"><option value="">Not a photographer</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${r.photographerId===p.id?'selected':''}>${esc(displayName(p.name))}</option>`).join('')}</select>`:esc(r.photographerId?pName(r.photographerId):'None')}</td>
       <td data-l="Joined" class="muted nowrap">${esc(ago(r.joinedAt))}</td>
       <td class="act">${can&&r.id!==S.me.id?`<button class="ibtn" aria-label="Remove from team" data-act="rmRole" data-id="${esc(r.id)}">${I.trash}</button>`:''}</td></tr>`}).join('')}
   </tbody></table>${!roles.length?'<div class="empty"><strong>Nobody has joined yet</strong>Invite your officers first, then your photographers.</div>':''}</section>`:''}
@@ -1441,7 +1499,7 @@ async function handlePending(){
       const mp=myPid()||v.photographerId||'';
       openModal({title:`Join as ${v.role}`,body:`<p style="margin-top:0"><span class="rb ${esc(v.role)}">${esc(v.role)}</span> ${esc(ROLE_DESC[v.role])}</p>
         ${v.email&&S.me.email&&norm(v.email)!==norm(S.me.email)?`<div class="note warn">${I.info}<div>This invite was sent to <b>${esc(v.email)}</b>, but you’re signed in as <b>${esc(S.me.email)}</b>. ${MODE==='firebase'?'Sign out and sign in with the invited account.':''}</div></div>`:''}
-        <div class="field"><label class="f" for="acc-pid">Which photographer are you?</label><select id="acc-pid"><option value="">I’m not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(p.name)}</option>`).join('')}</select><p class="help">This lets you check in, mark shoots done and earn points.</p></div>`,
+        <div class="field"><label class="f" for="acc-pid">Which photographer are you?</label><select id="acc-pid"><option value="">I’m not on the roster</option>${sortByName(S.photographers).map(p=>`<option value="${p.id}" ${p.id===mp?'selected':''}>${esc(displayName(p.name))}</option>`).join('')}</select><p class="help">This lets you check in, mark shoots done and earn points.</p></div>`,
         actions:[{label:'Not now',onClick:()=>history.replaceState(null,'','#home')},{label:'Join the team',cls:'pri',onClick:async()=>{const ok=await acceptInvite(v,$('#acc-pid').value);if(ok)history.replaceState(null,'','#home');return ok}}]});
       return;
     }
@@ -1548,6 +1606,9 @@ document.addEventListener('click',async e=>{
     case'wkToday':S.week=mondayOf(new Date());render();break;
     case'layout':S.layout=b.dataset.v;store.set('layout',S.layout);render();break;
     case'cfilter':S.f.clubFilter=b.dataset.v;render();break;
+    case'setTri':S.trimester=b.dataset.v;render();break;
+    case'ptScope':S.f.pointsScope=b.dataset.v;render();break;
+    case'coverTab':S.f.coverTab=b.dataset.v;S.f.clubFilter='all';render();break;
     case'newA':openAssignmentForm();break;
     case'editA':openAssignmentForm(findA());break;
     case'delA':{const x=findA();if(x&&await confirmBox('Delete this shoot?',`Delete <b>${esc(x.club)}</b> on ${esc(fmtShort(x.date))}? Points from this shoot are removed too.`))await W(()=>DB.doc('assignments/'+id).delete(),'Shoot deleted');break}
@@ -1574,7 +1635,7 @@ document.addEventListener('click',async e=>{
     case'phHist':openHistory(pById(id));break;
     case'award':openAward(id?[id]:[]);break;
     case'delAward':if(await confirmBox('Remove this award?','The points come off their total.','Remove'))await W(()=>DB.doc('awards/'+id).delete(),'Award removed');break;
-    case'phDel':{const p=pById(id);if(!p)break;const n=S.assignments.filter(x=>(x.photographers||[]).includes(id)).length;if(await confirmBox('Remove from roster?',`Remove <b>${esc(p.name)}</b>?${n?` They’re on ${plural(n,'shoot')}, which will show “Removed photographer”, and their points stop counting.`:''}`,'Remove'))await W(()=>DB.doc('photographers/'+id).delete(),'Removed from roster');break}
+    case'phDel':{const p=pById(id);if(!p)break;const n=S.assignments.filter(x=>(x.photographers||[]).includes(id)).length;if(await confirmBox('Remove from roster?',`Remove <b>${esc(displayName(p.name))}</b>?${n?` They’re on ${plural(n,'shoot')}, which will show “Removed photographer”, and their points stop counting.`:''}`,'Remove'))await W(()=>DB.doc('photographers/'+id).delete(),'Removed from roster');break}
     case'reqTab':S.f.reqTab=b.dataset.v;render();break;
     case'reqSubmit':{const f=$('#rqf');const ok=await submitRequest({photographerId:f.pid.value,club:f.club.value.trim(),date:f.date.value,note:f.note.value.trim()});if(ok){f.club.value='';f.note.value='';f.date.value=''}break}
     case'reqOk':{const r=S.requests.find(x=>x.id===id);if(r)await approveRequest(r);break}
