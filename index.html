@@ -536,6 +536,9 @@ const TYPES=[{id:'club',label:'Club',plural:'Clubs'},{id:'sport',label:'Sport',p
 const TYPE_LABEL={club:'Club',sport:'Sport',event:'Event'};
 const subjType=c=>c.type||'club';
 const subjectsOfType=t=>S.clubs.filter(c=>subjType(c)===t);
+const subjTri=c=>c.trimester||'fall';
+const subjectsFor=(type,tri)=>type==='club'?subjectsOfType('club'):S.clubs.filter(c=>subjType(c)===type&&subjTri(c)===tri);
+const subjExists=(name,type,tri)=>S.clubs.some(c=>subjType(c)===type&&norm(c.name)===norm(name)&&(type==='club'||subjTri(c)===tri));
 function triBar(scope){return `<div class="tribar"><div class="seg" role="group" aria-label="Trimester">${TRI.map(t=>`<button class="${S.trimester===t.id?'on':''}" data-act="setTri" data-v="${t.id}">${t.label}<span class="tt">${t.t}</span></button>`).join('')}</div>${scope?`<div class="seg">${[['tri','This trimester'],['year','All year']].map(([k,l])=>`<button class="${S.f.pointsScope===k?'on':''}" data-act="ptScope" data-v="${k}">${l}</button>`).join('')}</div>`:''}</div>`;}
 
 const cState=c=>!c?null:(c.status||'approved');
@@ -879,7 +882,7 @@ function openAssignmentForm(a){
     <form id="af" onsubmit="return false">
       <div class="row"><div class="field"><span class="f" style="display:block;margin-bottom:6px">Type</span><div class="seg" id="af-type">${TYPES.map(t=>`<button type="button" class="${(a.type||'club')===t.id?'on':''}" data-t="${t.id}">${t.label}</button>`).join('')}</div><input type="hidden" name="type" id="af-typev" value="${esc(a.type||'club')}"></div>
       <div class="field"><label class="f" for="af-tri">Trimester</label><select id="af-tri" name="trimester">${TRI.map(t=>`<option value="${t.id}" ${(a.trimester||trimesterOf(a.date))===t.id?'selected':''}>${t.label} (${t.t})</option>`).join('')}</select></div></div>
-      <div class="row"><div class="field"><label class="f" for="af-club" id="af-club-lbl">${(a.type||'club')==='sport'?'Team / sport':(a.type||'club')==='event'?'Event':'Club'}</label><input id="af-club" type="text" name="club" list="clubs-dl" value="${esc(a.club||'')}" placeholder="Start typing" required>${clubDatalist()}</div>
+      <div class="row"><div class="field"><label class="f" for="af-club" id="af-club-lbl">${(a.type||'club')==='sport'?'Team / sport':(a.type||'club')==='event'?'Event':'Club'}</label><input id="af-club" type="text" name="club" list="af-dl" value="${esc(a.club||'')}" placeholder="Start typing" required autocomplete="off"><datalist id="af-dl"></datalist></div>
       <div class="field"><label class="f" for="af-date">Date</label><input id="af-date" type="date" name="date" value="${esc(a.date)}" required></div></div>
       <div class="row"><div class="field"><label class="f" for="af-s">Starts</label><input id="af-s" type="time" name="start" value="${esc(a.start||'')}"></div>
       <div class="field"><label class="f" for="af-e">Ends</label><input id="af-e" type="time" name="end" value="${esc(a.end||'')}"></div>
@@ -892,9 +895,10 @@ function openAssignmentForm(a){
     </form>`,
     onOpen:r=>{wirePicker(r);
       const typev=$('#af-typev',r),lbl=$('#af-club-lbl',r),triSel=$('#af-tri',r),dateIn=$('#af-date',r);let triTouched=false;
-      triSel.addEventListener('change',()=>{triTouched=true});
-      dateIn.addEventListener('change',()=>{if(!triTouched)triSel.value=trimesterOf(dateIn.value)});
-      $('#af-type',r).addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;$$('#af-type button',r).forEach(x=>x.classList.toggle('on',x===b));typev.value=b.dataset.t;lbl.textContent=b.dataset.t==='sport'?'Team / sport':b.dataset.t==='event'?'Event':'Club'});
+      const dl=$('#af-dl',r);const fillDL=()=>{dl.innerHTML=subjectsFor(typev.value,triSel.value).slice().sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'})).map(c=>`<option value="${esc(c.name)}">`).join('')};fillDL();
+      triSel.addEventListener('change',()=>{triTouched=true;fillDL()});
+      dateIn.addEventListener('change',()=>{if(!triTouched){triSel.value=trimesterOf(dateIn.value);fillDL()}});
+      $('#af-type',r).addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;$$('#af-type button',r).forEach(x=>x.classList.toggle('on',x===b));typev.value=b.dataset.t;lbl.textContent=b.dataset.t==='sport'?'Team / sport':b.dataset.t==='event'?'Event':'Club';fillDL()});
     },
     actions:[{label:'Cancel'},{label:isNew?'Add shoot':'Save changes',cls:'pri',onClick:async()=>{
       const fd=new FormData($('#af'));
@@ -904,7 +908,7 @@ function openAssignmentForm(a){
       const ps=fd.getAll('ps');const prev=a.completions||{};const completions={};for(const p of ps)if(prev[p])completions[p]=prev[p];
       const pc=a.checkins||{};const checkins={};for(const p of ps)if(pc[p])checkins[p]=pc[p];
       const data={date,start:String(fd.get('start')||''),end:String(fd.get('end')||''),club,type,trimester,location:String(fd.get('location')||'').trim(),task:String(fd.get('task')||'').trim(),notes:String(fd.get('notes')||'').trim(),driveLink:String(fd.get('driveLink')||'').trim(),full:fd.get('full')==='on',photographers:ps,completions,checkins,updatedAt:nowISO()};
-      if(!clubByName(club))await W(()=>DB.collection('clubs').add({name:club,type,status:'No photos',notes:'',driveLink:''}));
+      if(!subjExists(club,type,trimester))await W(()=>DB.collection('clubs').add(Object.assign({name:club,type,status:'No photos',notes:'',driveLink:''},type!=='club'?{trimester}:{})));
       if(isNew){data.createdAt=nowISO();data.createdBy=S.me.id||'';return await W(()=>DB.collection('assignments').add(data),'Shoot added')}
       const full=Object.assign(clone(a),data);delete full.id;
       return await W(()=>DB.doc('assignments/'+a.id).set(full),'Changes saved');
