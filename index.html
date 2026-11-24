@@ -404,6 +404,7 @@ td.act{white-space:nowrap;text-align:right}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--line2);color:var(--muted);vertical-align:middle;margin-left:6px}
 .tag.sport{background:var(--blue-tint);color:var(--blue)}
 .tag.event{background:var(--gold-tint);color:#6E4E08}
+.tag-type{font-size:13.5px;padding:3px 10px;border-radius:6px;margin-left:8px;letter-spacing:.02em;vertical-align:2px}
 </style>
 </head>
 <body>
@@ -834,7 +835,7 @@ function contactSheet(list,mp,man,fno){
       const asked=mp&&S.requests.some(q=>q.photographerId===mp&&q.status==='pending'&&(q.assignmentId===a.id||(norm(q.club)===norm(a.club)&&q.date===a.date)));const canReq=!man&&mp&&!a.full&&st!=='done'&&st!=='review'&&!ps.includes(mp)&&!asked;
       const imIn=ps.includes(mp)&&!(a.checkins||{})[mp]&&!cState((a.completions||{})[mp]);
       return`<article class="frame s-${st}" aria-label="${esc(a.club)}"><span class="fno" title="Shoot ${fno[a.id]} this week">${pad(fno[a.id])}</span>
-        <div class="club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</div>
+        <div class="club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag tag-type ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</div>
         <div class="meta"><div>${I.clock}<span>${esc(timeRange(a))}</span></div>${a.location?`<div>${I.pin}<span>${esc(a.location)}</span></div>`:''}</div>
         ${a.task?`<div class="task">${esc(a.task)}</div>`:''}
         ${a.full?`<div class="flag">No more photographers needed</div>`:''}
@@ -849,7 +850,7 @@ function sheetHTML(list,mp,man){
   for(const a of list){
     if(a.date!==last){last=a.date;rows+=`<tr class="dayrow"><td colspan="9">${esc(fmtDay(a.date))}</td></tr>`}
     const st=aStatus(a),ps=a.photographers||[],drive=a.driveLink||clubByName(a.club)?.driveLink;
-    rows+=`<tr><td class="nowrap" data-l="Time">${esc(timeRange(a))}</td><td class="b" data-l="Club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</td>
+    rows+=`<tr><td class="nowrap" data-l="Time">${esc(timeRange(a))}</td><td class="b" data-l="Club">${esc(a.club)}${a.type&&a.type!=='club'?`<span class="tag tag-type ${a.type}">${TYPE_LABEL[a.type]}</span>`:''}</td>
       <td data-l="Photographers" style="min-width:250px">${ps.length?`<div style="display:flex;flex-direction:column;gap:4px">${ps.map(p=>personLine(a,p,mp,man)).join('')}</div>`:'<span class="muted">N/A</span>'}</td>
       <td data-l="Location">${esc(a.location||'')}</td><td data-l="Status"><span class="st ${st}">${ST_LABEL[st]}</span></td>
       <td data-l="Task" style="min-width:200px">${esc(a.task||'')}</td><td data-l="Notes" style="max-width:240px">${a.full?'<b style="color:var(--crimson)">No more photographers needed.</b> ':''}${esc(a.notes||'')}</td>
@@ -1209,7 +1210,7 @@ function clubStats(tri){
   return m;
 }
 function vClubs(){
-  const man=canManage(),tab=S.f.coverTab||'club',cs=clubStats(S.trimester),q=norm(S.f.clubQ);
+  const man=canManage(),tab='club',cs=clubStats(S.trimester),q=norm(S.f.clubQ);
   const all=subjectsOfType(tab);
   const tot=all.length,full=all.filter(c=>c.status==='Enough Photos').length,has=all.filter(c=>c.status==='Has Photos').length,none=tot-full-has;
   const tName=TYPES.find(t=>t.id===tab).label;
@@ -1225,9 +1226,8 @@ function vClubs(){
       <td data-l="Drive">${c.driveLink?`<a href="${esc(c.driveLink)}" target="_blank" rel="noopener">Folder</a>`:'<span class="muted">None</span>'}</td>
       <td class="act">${man?`<button class="ibtn" aria-label="Edit" data-act="editClub" data-id="${c.id}">${I.pen}</button><button class="ibtn" aria-label="Delete" data-act="delClub" data-id="${c.id}">${I.trash}</button>`:''}</td></tr>`}).join('');
   return`
-  <div class="ph"><div class="t"><h1>Coverage</h1><p class="lede">Which clubs, sports and events have been photographed. Counts are for the trimester you pick.</p></div>${man?`<button class="btn pri" data-act="newClub">${I.plus} Add ${tName.toLowerCase()}</button>`:''}</div>
+  <div class="ph"><div class="t"><h1>Coverage</h1><p class="lede">Which clubs have been photographed. Counts are for the trimester you pick.</p></div>${man?`<button class="btn pri" data-act="newClub">${I.plus} Add ${tName.toLowerCase()}</button>`:''}</div>
   ${triBar(false)}
-  <div class="tabs">${TYPES.map(t=>`<button class="${tab===t.id?'on':''}" data-act="coverTab" data-v="${t.id}">${t.plural} (${subjectsOfType(t.id).length})</button>`).join('')}</div>
   <div class="progress"><div class="big">${tot?Math.round(full/tot*100):0}<span>%</span></div><div class="segbar">${[['done',full],['gold',has],['open',none]].map(([k,n])=>n?`<i style="width:${n/tot*100}%;background:${k==='gold'?'var(--gold-bright)':'var(--c-'+k+')'}"></i>`:'').join('')}</div>
     <div class="legend"><span><i style="background:var(--c-done)"></i>${full} fully covered</span><span><i style="background:var(--gold-bright)"></i>${has} have some</span><span><i style="background:var(--c-open)"></i>${none} have none</span><span class="muted">${plural(tot,tName.toLowerCase())}</span></div></div>
   <div class="toolbar"><div class="seg">${[['all','All'],['open','No photos'],['gold','Some photos'],['done','Fully covered']].map(([k,l])=>`<button class="${S.f.clubFilter===k?'on':''}" data-act="cfilter" data-v="${k}">${l}</button>`).join('')}</div>
