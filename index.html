@@ -1215,7 +1215,8 @@ function clubStats(tri){
 }
 function vClubs(){
   const man=canManage(),tab='club',cs=clubStats(S.trimester),q=norm(S.f.clubQ);
-  const all=subjectsOfType(tab);
+  const nonClub=new Set(S.assignments.filter(a=>(a.type||'club')!=='club').map(a=>norm(a.club)));
+  const all=subjectsOfType(tab).filter(c=>!nonClub.has(norm(c.name)));
   const tot=all.length,full=all.filter(c=>c.status==='Enough Photos').length,has=all.filter(c=>c.status==='Has Photos').length,none=tot-full-has;
   const tName=TYPES.find(t=>t.id===tab).label;
   const list=all.filter(c=>(S.f.clubFilter==='all'||(COVER[c.status||'No photos']||COVER['No photos'])[1]===S.f.clubFilter)&&(!q||norm(c.name).includes(q)||norm(c.notes).includes(q)))
